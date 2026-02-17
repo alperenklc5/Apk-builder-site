@@ -32,31 +32,31 @@ def build_apk():
         source_path = TEMPLATE_DL if app_type == 'downloader' else TEMPLATE_STD
         shutil.copytree(source_path, temp_folder)
 
-        # 2. Paket Adını Değiştir (Güncelleme Sorunu Çözümü)
-        # Sadece küçük harfler kullanıyoruz
+        # 2. PAKET ADI GÜNCELLEME (Hata Payını Sıfıra İndiriyoruz)
+        # Sadece küçük harfler, rakam yok, en az iki nokta (standart format)
         clean_name = re.sub(r'[^a-z]', '', app_name.lower())
-        new_package_id = f"com.converttoapk.app{job_id}"
+        new_package_id = f"com.converttoapk.app.{clean_name}"
 
         manifest_path = os.path.join(temp_folder, 'AndroidManifest.xml')
         if os.path.exists(manifest_path):
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            # Paket adını her yerde (package="..." ve referanslarda) değiştir
-            content = re.sub(r'package="[a-zA-Z0-9._]*"', f'package="{new_package_id}"', content)
+            # Paket adını her yerde temizle
+            content = re.sub(r'package="[^"]*"', f'package="{new_package_id}"', content)
             with open(manifest_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-        # 3. Logo Güncelleme (Dosya Silmeden Üzerine Yazma)
+        # 3. LOGO GÜNCELLEME (Sadece en yüksek çözünürlüğü hedefliyoruz)
         if logo_file:
-            res_path = os.path.join(temp_folder, 'res')
-            for root, dirs, files in os.walk(res_path):
-                for filename in files:
-                    # Sadece PNG dosyalarını hedef alıyoruz, XML'lere dokunmuyoruz (Hata vermemesi için)
-                    if "ic_launcher" in filename and filename.endswith(".png"):
-                        logo_file.seek(0)
-                        logo_file.save(os.path.join(root, filename))
+            # En kritik logo klasörleri (genellikle cihazlar buraya bakar)
+            target_dirs = ['mipmap-xxxhdpi', 'mipmap-xxhdpi', 'drawable-xxhdpi']
+            for d in target_dirs:
+                target_path = os.path.join(temp_folder, 'res', d)
+                if os.path.exists(target_path):
+                    logo_file.seek(0)
+                    logo_file.save(os.path.join(target_path, 'ic_launcher.png'))
 
-        # 4. Uygulama İsmini Güncelle
+        # 4. UYGULAMA İSMİ GÜNCELLEME
         strings_path = os.path.join(temp_folder, 'res', 'values', 'strings.xml')
         if os.path.exists(strings_path):
             with open(strings_path, 'r', encoding='utf-8') as f:
@@ -65,13 +65,15 @@ def build_apk():
             with open(strings_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-        # 5. Build ve İmzala
+        # 5. İNŞA (BU KISIM ÇOK KRİTİK)
         safe_name = app_name.replace(" ", "_")
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
-        # -f parametresini kaldırıp temiz bir build deniyoruz
-        subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned], check=True)
+        # -f: Eski dosyaları ez, --copy-configs: Ayarları koru
+        subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f"], check=True)
+        
+        # İmzalama (v2/v3 signing desteği için apksigner şart)
         subprocess.run(["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", "--out", apk_signed, apk_unsigned], check=True)
 
         shutil.rmtree(temp_folder)
@@ -80,17 +82,16 @@ def build_apk():
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
-            <h1>✅ Success</h1>
-            <p>App Name: {app_name}</p>
-            <p>New ID: {new_package_id}</p>
+            <h1>✅ Build Success</h1>
+            <p>ID: {new_package_id}</p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; font-weight:600; margin-top:30px;">
-                Download APK
+                Download Now
             </a>
         </div>
         """
 
     except Exception as e:
-        return f"<h1>Build Error:</h1><p>{str(e)}</p>"
+        return f"<h1>Build Error:</h1><pre>{str(e)}</pre>"
 
 @app.route('/download/<filename>')
 def download(filename):
