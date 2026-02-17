@@ -59,13 +59,16 @@ def build_apk():
         shutil.rmtree(temp_folder)
         if os.path.exists(apk_unsigned): os.remove(apk_unsigned)
         
-        return f"""
-        <div style="text-align:center; padding:50px; font-family:sans-serif;">
-            <h2 style="color:#000;">✓ İşlem Tamamlandı</h2>
-            <p>Uygulamanız başarıyla oluşturuldu.</p>
-            <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:12px 24px; text-decoration:none; border-radius:6px; margin-top:20px;">
-                {app_name}.apk İndir
+       return f"""
+        <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
+            <div style="font-size:60px;">✅</div>
+            <h2 style="font-weight:800;">Build Successful!</h2>
+            <p style="color:#666;">Your application <b>{app_name}</b> is ready for production.</p>
+            <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; font-weight:600; margin-top:30px;">
+                Download APK File
             </a>
+            <br><br>
+            <a href="/" style="color:#666; text-decoration:none;">← Create another app</a>
         </div>
         """
 
