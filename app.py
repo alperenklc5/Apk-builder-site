@@ -60,7 +60,8 @@ def build_apk():
                 f.write(content)
 
         # 3. APK Paketle
-        apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_unsigned.apk")
+        safe_app_name = app_name.replace(" ", "_")
+        apk_unsigned = os.path.join(OUTPUT_DIR, f"{safe_app_name}}.apk")
         subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned], check=True)
         
         # 4. İmzala
