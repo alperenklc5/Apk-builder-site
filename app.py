@@ -28,41 +28,35 @@ def build_apk():
         job_id = str(uuid.uuid4())[:8]
         temp_folder = os.path.join(OUTPUT_DIR, job_id)
         
-        # 1. Template Copy
+        # 1. Template Kopyala
         source_path = TEMPLATE_DL if app_type == 'downloader' else TEMPLATE_STD
         shutil.copytree(source_path, temp_folder)
 
-        # 2. BRAND NEW PACKAGE ID (Avoids "Update" error)
-        # Sadece harf ve rakam kullanıyoruz, Android daha çok seviyor.
+        # 2. Paket Adını Değiştir (Güncelleme Sorunu Çözümü)
+        # Sadece küçük harfler kullanıyoruz
         clean_name = re.sub(r'[^a-z]', '', app_name.lower())
-        new_package_id = f"com.converttoapk.v{job_id}.{clean_name}"
+        new_package_id = f"com.converttoapk.app{job_id}"
 
-        # AndroidManifest.xml Update
         manifest_path = os.path.join(temp_folder, 'AndroidManifest.xml')
         if os.path.exists(manifest_path):
             with open(manifest_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-            # Paket adını tüm referanslarıyla beraber değiştiriyoruz
+            # Paket adını her yerde (package="..." ve referanslarda) değiştir
             content = re.sub(r'package="[a-zA-Z0-9._]*"', f'package="{new_package_id}"', content)
             with open(manifest_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-        # 3. ADVANCED LOGO INJECTION
+        # 3. Logo Güncelleme (Dosya Silmeden Üzerine Yazma)
         if logo_file:
-            # Tüm res klasörünü gezip ic_launcher isimli her şeyi eziyoruz
             res_path = os.path.join(temp_folder, 'res')
             for root, dirs, files in os.walk(res_path):
                 for filename in files:
-                    # Sadece ic_launcher.png olanları değil, xml (vector) olanları da siliyoruz ki çakışmasın
-                    if "ic_launcher" in filename:
-                        target_file = os.path.join(root, filename)
-                        if filename.endswith(".xml"):
-                            os.remove(target_file) # Eski vektör logoyu sil
-                        elif filename.endswith(".png"):
-                            logo_file.seek(0)
-                            logo_file.save(target_file) # Kendi logonu yaz
+                    # Sadece PNG dosyalarını hedef alıyoruz, XML'lere dokunmuyoruz (Hata vermemesi için)
+                    if "ic_launcher" in filename and filename.endswith(".png"):
+                        logo_file.seek(0)
+                        logo_file.save(os.path.join(root, filename))
 
-        # 4. APP NAME UPDATE
+        # 4. Uygulama İsmini Güncelle
         strings_path = os.path.join(temp_folder, 'res', 'values', 'strings.xml')
         if os.path.exists(strings_path):
             with open(strings_path, 'r', encoding='utf-8') as f:
@@ -71,26 +65,24 @@ def build_apk():
             with open(strings_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-        # 5. BUILD & SIGNING
+        # 5. Build ve İmzala
         safe_name = app_name.replace(" ", "_")
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
-        # Apktool ile inşa (f parametresi eski kalıntıları siler)
-        subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f"], check=True)
-        
-        # İmzalama
+        # -f parametresini kaldırıp temiz bir build deniyoruz
+        subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned], check=True)
         subprocess.run(["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", "--out", apk_signed, apk_unsigned], check=True)
 
-        # Cleanup
         shutil.rmtree(temp_folder)
         if os.path.exists(apk_unsigned):
             os.remove(apk_unsigned)
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
-            <h1>✅ Build Success</h1>
-            <p>Your unique app <b>{app_name}</b> is ready.</p>
+            <h1>✅ Success</h1>
+            <p>App Name: {app_name}</p>
+            <p>New ID: {new_package_id}</p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; font-weight:600; margin-top:30px;">
                 Download APK
             </a>
