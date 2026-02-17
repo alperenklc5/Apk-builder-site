@@ -3,70 +3,610 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web2App | High-Performance APK Converter</title>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!--  PRIMARY SEO META TAGS                              -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <title>ConvertToAPK – Free Website to APK Converter Online | Web to Android App</title>
+    <meta name="description" content="Convert any website to a native Android APK app in seconds. Free, fast and secure web to APK converter. No coding required. Create your Android app from URL instantly at ConvertToAPK.com">
+    <meta name="keywords" content="website to apk, web to apk converter, convert website to android app, url to apk, free apk converter, web2apk, webview apk builder, android app from website">
+    <meta name="author" content="ConvertToAPK.com">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#0a0a0a">
+    <link rel="canonical" href="https://converttoapk.com/">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!--  OPEN GRAPH (Facebook, LinkedIn, WhatsApp)          -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://converttoapk.com/">
+    <meta property="og:title" content="ConvertToAPK – Website to Android APK Converter">
+    <meta property="og:description" content="Turn any website into a native Android app in seconds. Free, no coding required. Just enter your URL and download your APK.">
+    <meta property="og:image" content="https://converttoapk.com/og-image.png">
+    <meta property="og:site_name" content="ConvertToAPK">
+    <meta property="og:locale" content="en_US">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!--  TWITTER CARD                                       -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://converttoapk.com/">
+    <meta name="twitter:title" content="ConvertToAPK – Website to Android APK Converter">
+    <meta name="twitter:description" content="Turn any website into a native Android app in seconds. Free & no coding required.">
+    <meta name="twitter:image" content="https://converttoapk.com/og-image.png">
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!--  STRUCTURED DATA (Google Rich Results)              -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "ConvertToAPK",
+      "url": "https://converttoapk.com",
+      "description": "Free online tool to convert any website or URL into a native Android APK application. No coding required.",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": [
+        "Website to APK conversion",
+        "Custom app icon support",
+        "Business and Video Downloader templates",
+        "Fast Android build"
+      ]
+    }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!--  FONTS & ICONS                                      -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+
     <style>
-        :root { --primary: #000; --secondary: #6366f1; }
-        body { background: #fff; font-family: 'Inter', sans-serif; color: #111; }
-        .hero-section { padding: 80px 0 40px; text-align: center; }
-        .hero-title { font-size: 3rem; font-weight: 800; letter-spacing: -1.5px; }
-        .converter-card { 
-            border: 1px solid #eaeaea; 
-            border-radius: 16px; 
-            padding: 40px; 
-            box-shadow: 0 4px 30px rgba(0,0,0,0.03);
-            background: #fff;
+        :root {
+            --bg:        #0a0a0b;
+            --surface:   #111114;
+            --border:    rgba(255,255,255,0.07);
+            --text:      #f0f0f2;
+            --muted:     #6b6b7a;
+            --accent:    #4f8eff;
+            --accent2:   #a78bfa;
+            --success:   #22d3a6;
+            --mono:      'JetBrains Mono', monospace;
+            --sans:      'Sora', sans-serif;
         }
-        .form-label { font-weight: 600; font-size: 0.85rem; text-transform: uppercase; color: #666; }
-        .btn-black { 
-            background: #000; color: #fff; border-radius: 8px; padding: 12px; 
-            font-weight: 600; border: none; width: 100%; transition: 0.3s;
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            font-family: var(--sans);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
         }
-        .btn-black:hover { opacity: 0.8; transform: translateY(-2px); }
-        .badge-new { background: #eef2ff; color: #6366f1; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+
+        /* ── Background grid ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(79,142,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(79,142,255,0.03) 1px, transparent 1px);
+            background-size: 48px 48px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Glow blobs ── */
+        .glow-blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.12;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .glow-blob-1 { width: 500px; height: 500px; background: var(--accent); top: -100px; right: -100px; animation: drift 12s ease-in-out infinite alternate; }
+        .glow-blob-2 { width: 400px; height: 400px; background: var(--accent2); bottom: 0; left: -100px; animation: drift 16s ease-in-out infinite alternate-reverse; }
+
+        @keyframes drift {
+            from { transform: translate(0, 0) scale(1); }
+            to   { transform: translate(40px, 30px) scale(1.1); }
+        }
+
+        /* ── Navbar ── */
+        .navbar-custom {
+            background: rgba(10,10,11,0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .nav-brand {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            color: var(--text) !important;
+            text-decoration: none;
+        }
+        .nav-brand span { color: var(--accent); }
+        .nav-pill {
+            font-size: 0.78rem;
+            font-family: var(--mono);
+            background: rgba(79,142,255,0.12);
+            color: var(--accent);
+            border: 1px solid rgba(79,142,255,0.25);
+            padding: 4px 12px;
+            border-radius: 20px;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── Hero ── */
+        .hero {
+            padding: 80px 0 50px;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: var(--mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            background: rgba(79,142,255,0.08);
+            border: 1px solid rgba(79,142,255,0.2);
+            padding: 6px 16px;
+            border-radius: 30px;
+            margin-bottom: 28px;
+            letter-spacing: 0.5px;
+        }
+        .hero-eyebrow::before {
+            content: '';
+            width: 6px; height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.8); }
+        }
+
+        .hero-title {
+            font-size: clamp(2.4rem, 6vw, 4rem);
+            font-weight: 800;
+            letter-spacing: -2.5px;
+            line-height: 1.1;
+            background: linear-gradient(135deg, #ffffff 30%, #8aadff 70%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+        .hero-sub {
+            font-size: 1.05rem;
+            color: var(--muted);
+            max-width: 500px;
+            margin: 0 auto 16px;
+            line-height: 1.65;
+            font-weight: 300;
+        }
+
+        /* ── Stats row ── */
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin: 36px 0;
+            flex-wrap: wrap;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-num {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -1px;
+        }
+        .stat-label {
+            font-size: 0.72rem;
+            color: var(--muted);
+            font-family: var(--mono);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+        .stat-divider {
+            width: 1px;
+            background: var(--border);
+            align-self: stretch;
+        }
+
+        /* ── Converter Card ── */
+        .converter-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            z-index: 1;
+            box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 30px 80px rgba(0,0,0,0.5);
+        }
+        .converter-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 50%; transform: translateX(-50%);
+            width: 60%; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(79,142,255,0.5), transparent);
+        }
+
+        .card-header-text {
+            font-size: 0.7rem;
+            font-family: var(--mono);
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 28px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .card-header-text .status-dot {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--success);
+        }
+        .card-header-text .status-dot::before {
+            content: '';
+            width: 6px; height: 6px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        /* ── Form Elements ── */
+        .form-label {
+            font-size: 0.72rem;
+            font-family: var(--mono);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--muted);
+            font-weight: 500;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .form-control, .form-select {
+            background: rgba(255,255,255,0.03) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--text) !important;
+            border-radius: 10px !important;
+            padding: 12px 16px !important;
+            font-family: var(--sans);
+            font-size: 0.9rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: rgba(79,142,255,0.5) !important;
+            box-shadow: 0 0 0 3px rgba(79,142,255,0.1) !important;
+            outline: none;
+        }
+        .form-control::placeholder { color: #3a3a4a !important; }
+        .form-select option { background: #1a1a22; color: var(--text); }
+
+        /* File input styling */
+        .form-control[type="file"] { padding: 10px 16px !important; cursor: pointer; }
+        .form-control[type="file"]::-webkit-file-upload-button {
+            background: rgba(79,142,255,0.15);
+            border: 1px solid rgba(79,142,255,0.3);
+            color: var(--accent);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-family: var(--mono);
+            cursor: pointer;
+            margin-right: 12px;
+        }
+
+        /* ── Build Button ── */
+        .btn-build {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--accent), #6b5eff);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-family: var(--sans);
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 8px;
+        }
+        .btn-build::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s;
+        }
+        .btn-build:hover::before { left: 100%; }
+        .btn-build:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(79,142,255,0.35); }
+        .btn-build:active { transform: translateY(0); }
+        .btn-build i { margin-right: 8px; }
+
+        /* ── Feature badges ── */
+        .features-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 28px;
+        }
+        .feat-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--muted);
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 20px;
+        }
+        .feat-badge i { color: var(--success); font-size: 0.7rem; }
+
+        /* ── How it works ── */
+        .section-title {
+            font-size: 0.68rem;
+            font-family: var(--mono);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+        .section-heading {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .step-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px;
+            height: 100%;
+            transition: border-color 0.3s, transform 0.3s;
+            position: relative;
+            z-index: 1;
+        }
+        .step-card:hover {
+            border-color: rgba(79,142,255,0.3);
+            transform: translateY(-4px);
+        }
+        .step-num {
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            color: var(--accent);
+            background: rgba(79,142,255,0.1);
+            border: 1px solid rgba(79,142,255,0.2);
+            width: 32px; height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        .step-title { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+        .step-desc  { font-size: 0.85rem; color: var(--muted); line-height: 1.6; }
+
+        /* ── Footer ── */
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 28px 0;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+        .footer-links a {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 0.8rem;
+            margin: 0 12px;
+            transition: color 0.2s;
+        }
+        .footer-links a:hover { color: var(--text); }
+        .footer-copy {
+            font-size: 0.75rem;
+            color: #3a3a4a;
+            margin-top: 12px;
+            font-family: var(--mono);
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 576px) {
+            .hero { padding: 50px 0 30px; }
+            .converter-card { padding: 28px 22px; }
+            .stats-row { gap: 20px; }
+            .stat-divider { display: none; }
+        }
     </style>
 </head>
 <body>
+
+    <!-- Background effects -->
+    <div class="glow-blob glow-blob-1"></div>
+    <div class="glow-blob glow-blob-2"></div>
+
+    <!-- ── NAVBAR ── -->
+    <nav class="navbar-custom">
+        <div class="container d-flex align-items-center justify-content-between">
+            <a class="nav-brand" href="https://converttoapk.com/">
+                Convert<span>ToAPK</span>
+            </a>
+            <span class="nav-pill">v2.0 BETA</span>
+        </div>
+    </nav>
+
+    <!-- ── HERO ── -->
     <div class="container">
-        <div class="hero-section">
-            <span class="badge-new mb-3">v2.0 Beta - Global Release</span>
-            <h1 class="hero-title">Convert any website<br>into a Native App.</h1>
-            <p class="text-muted fs-5 mt-3">High-quality, secure, and fast Android builds in seconds.</p>
+        <div class="hero">
+            <div class="hero-eyebrow">FREE ONLINE CONVERTER · NO CODING REQUIRED</div>
+            <h1 class="hero-title">
+                Turn Any Website<br>Into an Android App
+            </h1>
+            <p class="hero-sub">
+                Enter your URL, customize your app, and download a production-ready APK in seconds.
+            </p>
+
+            <!-- Stats -->
+            <div class="stats-row">
+                <div class="stat-item">
+                    <div class="stat-num">10K+</div>
+                    <div class="stat-label">APKs Built</div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-num">~30s</div>
+                    <div class="stat-label">Build Time</div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-num">100%</div>
+                    <div class="stat-label">Free</div>
+                </div>
+            </div>
         </div>
 
-        <div class="row justify-content-center">
-            <div class="col-lg-5">
+        <!-- ── CONVERTER FORM ── -->
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-5 col-md-7">
                 <div class="converter-card">
+                    <div class="card-header-text">
+                        <span>APK Builder Console</span>
+                        <span class="status-dot">Server Online</span>
+                    </div>
+
                     <form action="/build" method="POST" enctype="multipart/form-data">
+
                         <div class="mb-4">
                             <label class="form-label">Application Name</label>
-                            <input type="text" name="app_name" class="form-control form-control-lg" placeholder="e.g. My Global App" required>
+                            <input type="text" name="app_name" class="form-control form-control-lg"
+                                   placeholder="e.g. My Business App" required
+                                   autocomplete="off">
                         </div>
-                        
+
                         <div class="mb-4">
-                            <label class="form-label">Destination URL</label>
-                            <input type="url" name="url" class="form-control form-control-lg" placeholder="https://yourwebsite.com" required>
+                            <label class="form-label">Website URL</label>
+                            <input type="url" name="url" class="form-control form-control-lg"
+                                   placeholder="https://yourwebsite.com" required
+                                   autocomplete="off">
                         </div>
 
                         <div class="mb-4">
                             <label class="form-label">App Template</label>
                             <select name="app_type" class="form-select form-select-lg">
-                                <option value="standard">Business Standard</option>
-                                <option value="downloader">Video Downloader Engine</option>
+                                <option value="standard">🏢 Business Standard</option>
+                                <option value="downloader">⬇️ Video Downloader Engine</option>
                             </select>
                         </div>
 
                         <div class="mb-4">
-                            <label class="form-label">Brand Icon (PNG)</label>
+                            <label class="form-label">App Icon <span style="color:#3a3a4a;font-size:0.65rem;">(PNG, optional)</span></label>
                             <input type="file" name="logo" class="form-control" accept="image/png">
                         </div>
 
-                        <button type="submit" class="btn btn-black mt-2">BUILD YOUR APP</button>
+                        <button type="submit" class="btn-build">
+                            <i class="bi bi-android2"></i> BUILD MY APK
+                        </button>
                     </form>
                 </div>
-                <p class="text-center text-muted mt-4 small">© 2026 Web2App Technology. All rights reserved.</p>
+
+                <!-- Feature badges -->
+                <div class="features-row">
+                    <span class="feat-badge"><i class="bi bi-check-circle-fill"></i> No account needed</span>
+                    <span class="feat-badge"><i class="bi bi-check-circle-fill"></i> Secure build</span>
+                    <span class="feat-badge"><i class="bi bi-check-circle-fill"></i> Custom icon</span>
+                    <span class="feat-badge"><i class="bi bi-check-circle-fill"></i> Instant download</span>
+                </div>
             </div>
         </div>
-    </div>
+
+        <!-- ── HOW IT WORKS ── -->
+        <div class="row justify-content-center mb-5">
+            <div class="col-lg-9 text-center mb-4">
+                <p class="section-title">How it works</p>
+                <h2 class="section-heading">3 steps to your Android app</h2>
+                <p style="color:var(--muted);font-size:0.9rem;">No Android Studio. No Java. No build servers to configure.</p>
+            </div>
+            <div class="col-lg-9">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="step-card">
+                            <div class="step-num">01</div>
+                            <div class="step-title">Enter Your URL</div>
+                            <div class="step-desc">Paste any website URL — works with any responsive web app, store, or portfolio.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="step-card">
+                            <div class="step-num">02</div>
+                            <div class="step-title">Customize</div>
+                            <div class="step-desc">Set your app name, upload a PNG icon, and choose a template that fits your use case.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="step-card">
+                            <div class="step-num">03</div>
+                            <div class="step-title">Download APK</div>
+                            <div class="step-desc">Hit build and download your signed Android APK file in under 30 seconds.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /container -->
+
+    <!-- ── FOOTER ── -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-links">
+                <a href="/about">About</a>
+                <a href="/faq">FAQ</a>
+                <a href="/privacy">Privacy Policy</a>
+                <a href="/terms">Terms of Service</a>
+                <a href="/contact">Contact</a>
+            </div>
+            <div class="footer-copy">
+                © 2026 ConvertToAPK.com · Convert website to APK online · All rights reserved
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
