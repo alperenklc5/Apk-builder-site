@@ -1,33 +1,26 @@
-# 1. Stabil ve garantili Linux sürümü kullan (Debian Bullseye)
 FROM python:3.9-slim-bullseye
 
-# 2. Java kurulumunda hata çıkmaması için gerekli klasörleri oluştur
 RUN mkdir -p /usr/share/man/man1
 
-# 3. Gerekli araçları yükle (Java 11, Zip, Apktool)
-# 'default-jdk' genelde Java 11 kurar ve Apktool için en sağlıklısıdır.
+# Apktool'un en güncel versiyonunu indirecek şekilde güncelliyoruz
 RUN apt-get update && \
     apt-get install -y \
     default-jdk \
     zip \
     unzip \
-    apktool \
+    wget \
     apksigner \
     && rm -rf /var/lib/apt/lists/*
 
-# 4. Çalışma Klasörü
-WORKDIR /app
+# En güncel Apktool'u manuel kuruyoruz (2.10.0)
+RUN wget https://github.com/iBotPeaches/Apktool/releases/download/v2.10.0/apktool_2.10.0.jar -O /usr/local/bin/apktool.jar && \
+    echo '#!/bin/bash\njava -jar /usr/local/bin/apktool.jar "$@"' > /usr/local/bin/apktool && \
+    chmod +x /usr/local/bin/apktool
 
-# 5. Kütüphaneleri Yükle
+WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-# 6. Dosyaları Kopyala
 COPY . .
-
-# 7. İzinleri Ayarla (Önemli!)
 RUN chmod -R 777 /app/source
-
-# 8. Portu Aç ve Başlat
 EXPOSE 10000
 CMD ["gunicorn", "app:app", "--bind", "0.0.0.0:10000", "--timeout", "120"]
