@@ -11,11 +11,11 @@ OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
 KEYSTORE_PATH = os.path.join(BASE_DIR, 'yeni.jks')
 KEY_PASS = "123456" 
 
-if not os.path.exists(OUTPUT_DIR): 
+if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
 
 @app.route('/')
-def home(): 
+def home():
     return render_template('index.html')
 
 @app.route('/build', methods=['POST'])
@@ -28,11 +28,10 @@ def build_apk():
         job_id = str(uuid.uuid4())[:8]
         temp_folder = os.path.join(OUTPUT_DIR, job_id)
         
-        # 1. Select and Copy Template
         source_path = TEMPLATE_DL if app_type == 'downloader' else TEMPLATE_STD
         shutil.copytree(source_path, temp_folder)
 
-        # 2. Update App Name (strings.xml)
+        # Update App Name
         strings_path = os.path.join(temp_folder, 'res', 'values', 'strings.xml')
         if os.path.exists(strings_path):
             with open(strings_path, 'r', encoding='utf-8') as f:
@@ -41,13 +40,13 @@ def build_apk():
             with open(strings_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-        # 3. Update Icon (if uploaded)
+        # Update Icon
         if logo_file:
             logo_path = os.path.join(temp_folder, 'res', 'mipmap-xxxhdpi', 'ic_launcher.png')
             if os.path.exists(logo_path):
                 logo_file.save(logo_path)
 
-        # 4. Build and Sign
+        # Build & Sign
         safe_name = app_name.replace(" ", "_")
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
@@ -55,30 +54,29 @@ def build_apk():
         subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned], check=True)
         subprocess.run(["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", "--out", apk_signed, apk_unsigned], check=True)
 
-        # Cleanup
         shutil.rmtree(temp_folder)
-        if os.path.exists(apk_unsigned): 
+        if os.path.exists(apk_unsigned):
             os.remove(apk_unsigned)
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
-            <div style="font-size:60px;">✅</div>
+            <h1 style="font-size:50px;">📦</h1>
             <h2 style="font-weight:800; color:#000;">Build Successful!</h2>
-            <p style="color:#666;">Your application <b>{app_name}</b> is ready.</p>
-            <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; font-weight:600; margin-top:30px;">
-                Download APK
+            <p style="color:#666;">Your app <b>{app_name}</b> is ready for production.</p>
+            <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:18px 40px; text-decoration:none; border-radius:12px; font-weight:700; margin-top:20px;">
+                DOWNLOAD APK FILE
             </a>
             <br><br>
-            <a href="/" style="color:#666; text-decoration:none;">← Create another app</a>
+            <a href="/" style="color:#888; text-decoration:none; font-size:14px;">← Back to dashboard</a>
         </div>
         """
 
-    except Exception as e: 
-        return f"<h1>Error:</h1><p>{str(e)}</p>"
+    except Exception as e:
+        return f"<h1>Error during build:</h1><p>{str(e)}</p>"
 
 @app.route('/download/<filename>')
-def download(filename): 
+def download(filename):
     return send_file(os.path.join(OUTPUT_DIR, filename), as_attachment=True)
 
-if __name__ == '__main__': 
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
