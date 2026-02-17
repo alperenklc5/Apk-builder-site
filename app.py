@@ -25,39 +25,40 @@ def build_apk():
         app_type = request.form.get('app_type')
         logo_file = request.files.get('logo')
         
-        # 1. Benzersiz bir iş ID'si ve klasör oluştur
         job_id = str(uuid.uuid4())[:8]
         temp_folder = os.path.join(OUTPUT_DIR, job_id)
         
-        # 2. Şablonu kopyala
+        # 1. Template Kopyalama
         source_path = TEMPLATE_DL if app_type == 'downloader' else TEMPLATE_STD
         shutil.copytree(source_path, temp_folder)
 
-        # 3. DINAMIK PAKET ADI AYARI (Çakışmayı önleyen kısım)
-        # İsmi temizleyip 'com.converttoapk.isim' formatına getiriyoruz
+        # 2. PAKET ADI GÜNCELLEME (Güncelleme Hatası Çözümü)
         clean_name = re.sub(r'[^a-zA-Z0-9]', '', app_name.lower())
-        new_package_id = f"com.converttoapk.{clean_name}.id{job_id}"
+        # Rastgelelik ekleyerek tamamen benzersiz yapıyoruz
+        new_package_id = f"com.converttoapk.id{job_id}.{clean_name}"
 
-        # AndroidManifest.xml içinde eski paket adını yenisiyle değiştir
+        # AndroidManifest.xml Güncelleme
         manifest_path = os.path.join(temp_folder, 'AndroidManifest.xml')
         if os.path.exists(manifest_path):
             with open(manifest_path, 'r', encoding='utf-8') as f:
-                manifest_content = f.read()
-            # 'com.example.template' senin ana template paket adın olmalı
-            manifest_content = manifest_content.replace('com.example.template', new_package_id)
+                content = f.read()
+            # ÖNEMLİ: Template'inin orijinal paket adını burada 'com.example.template' yerine yaz
+            content = re.sub(r'package="[^"]*"', f'package="{new_package_id}"', content)
             with open(manifest_path, 'w', encoding='utf-8') as f:
-                f.write(manifest_content)
+                f.write(content)
 
-        # apktool.yml içindeki paket adını da güncelle
-        yml_path = os.path.join(temp_folder, 'apktool.yml')
-        if os.path.exists(yml_path):
-            with open(yml_path, 'r', encoding='utf-8') as f:
-                yml_content = f.read()
-            yml_content = re.sub(r'renameManifestPackage:.*', f'renameManifestPackage: {new_package_id}', yml_content)
-            with open(yml_path, 'w', encoding='utf-8') as f:
-                f.write(yml_content)
+        # 3. LOGO GÜNCELLEME (Logo Görünmeme Çözümü)
+        if logo_file:
+            # Tüm çözünürlük klasörlerini tarayıp ic_launcher.png'yi değiştiriyoruz
+            res_path = os.path.join(temp_folder, 'res')
+            for root, dirs, files in os.walk(res_path):
+                if "mipmap" in root or "drawable" in root:
+                    for filename in files:
+                        if "ic_launcher" in filename and filename.endswith(".png"):
+                            logo_file.seek(0) # Dosya imlecini başa sar
+                            logo_file.save(os.path.join(root, filename))
 
-        # 4. Uygulama İsmini Güncelle (strings.xml)
+        # 4. UYGULAMA İSMİ GÜNCELLEME
         strings_path = os.path.join(temp_folder, 'res', 'values', 'strings.xml')
         if os.path.exists(strings_path):
             with open(strings_path, 'r', encoding='utf-8') as f:
@@ -66,18 +67,14 @@ def build_apk():
             with open(strings_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-        # 5. Logoyu Güncelle
-        if logo_file:
-            logo_path = os.path.join(temp_folder, 'res', 'mipmap-xxxhdpi', 'ic_launcher.png')
-            if os.path.exists(logo_path):
-                logo_file.save(logo_path)
-
-        # 6. İnşa ve İmzalama
+        # 5. İNŞA VE İMZALAMA
         safe_name = app_name.replace(" ", "_")
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
+        # Build
         subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned], check=True)
+        # İmzalama (Zipalign eklemedik ama apksigner v2/v3 destekler)
         subprocess.run(["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", "--out", apk_signed, apk_unsigned], check=True)
 
         # Temizlik
@@ -87,19 +84,16 @@ def build_apk():
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
-            <h1 style="font-size:50px;">✅</h1>
-            <h2 style="font-weight:800; color:#000;">Build Successful!</h2>
-            <p style="color:#666;">Your app <b>{app_name}</b> is ready with unique ID: {new_package_id}</p>
-            <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:18px 40px; text-decoration:none; border-radius:12px; font-weight:700; margin-top:20px;">
-                DOWNLOAD APK FILE
+            <h1>✅ Build Success</h1>
+            <p>App ID: {new_package_id}</p>
+            <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; font-weight:600; margin-top:30px;">
+                Download {app_name}.apk
             </a>
-            <br><br>
-            <a href="/" style="color:#888; text-decoration:none; font-size:14px;">← Back to dashboard</a>
         </div>
         """
 
     except Exception as e:
-        return f"<h1>Error during build:</h1><p>{str(e)}</p>"
+        return f"<h1>Build Error:</h1><p>{str(e)}</p>"
 
 @app.route('/download/<filename>')
 def download(filename):
