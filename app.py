@@ -35,62 +35,74 @@ def build_apk():
              return f"<h1>Critical Error:</h1><p>Source template not found: {source_path}</p>"
         shutil.copytree(source_path, temp_folder)
 
-        # 2. PAKET ADI DEĞİŞİMİ (HEM MANIFEST HEM YML - ÇİFT DİKİŞ)
-        safe_suffix = re.sub(r'[^a-z0-9]', '', app_name.lower())[:10]
-        # Paket adı formatı: com.v{job_id}.{isim} (Rakamla başlamaması için v ekledik)
-        new_package_id = f"com.v{job_id}.{safe_suffix}"
+        # 2. PAKET ADI DEĞİŞİMİ (PARSING HATASINI ÇÖZEN YÖNTEM)
+        # Manifest.xml'e dokunmuyoruz! Sadece apktool.yml üzerinden yapıyoruz.
         
-        # A) AndroidManifest.xml'i ZORLA değiştir (Güncelle sorunu için asıl çözüm)
-        manifest_path = os.path.join(temp_folder, 'AndroidManifest.xml')
-        if os.path.exists(manifest_path):
-            with open(manifest_path, 'r', encoding='utf-8') as f:
-                manifest_content = f.read()
-            # Regex ile package="herhangi_bir_şey" kısmını bul ve değiştir
-            manifest_content = re.sub(r'package="[^"]*"', f'package="{new_package_id}"', manifest_content)
-            with open(manifest_path, 'w', encoding='utf-8') as f:
-                f.write(manifest_content)
-
-        # B) Apktool.yml'i de güncelle (Yedek önlem)
+        safe_suffix = re.sub(r'[^a-z0-9]', '', app_name.lower())[:10]
+        # Paket adı: com.convert.v{random}.{isim}
+        new_package_id = f"com.convert.v{job_id}.{safe_suffix}"
+        
         yml_path = os.path.join(temp_folder, 'apktool.yml')
         if os.path.exists(yml_path):
             with open(yml_path, 'r', encoding='utf-8') as f:
-                yml_content = f.read()
-            if "renameManifestPackage:" in yml_content:
-                yml_content = re.sub(r'renameManifestPackage:.*', f'renameManifestPackage: {new_package_id}', yml_content)
-            else:
-                yml_content = f"renameManifestPackage: {new_package_id}\n" + yml_content
-            with open(yml_path, 'w', encoding='utf-8') as f:
-                f.write(yml_content)
+                lines = f.readlines()
+            
+            # YAML dosyasını satır satır yeniden yazıyoruz (Bozulmayı önlemek için)
+            new_lines = []
+            renamed = False
+            for line in lines:
+                if "renameManifestPackage:" in line:
+                    new_lines.append(f"renameManifestPackage: {new_package_id}\n")
+                    renamed = True
+                else:
+                    new_lines.append(line)
+            
+            # Eğer dosyada bu satır hiç yoksa, en güvenli yer olan 'versionInfo' altına ekle
+            if not renamed:
+                final_lines = []
+                for line in new_lines:
+                    final_lines.append(line)
+                    if "versionInfo:" in line: # Genellikle güvenli ekleme noktası
+                        final_lines.append(f"  renameManifestPackage: {new_package_id}\n")
+                
+                # Eğer versionInfo da yoksa en sona ekle
+                if len(final_lines) == len(new_lines):
+                     final_lines.append(f"renameManifestPackage: {new_package_id}\n")
+                new_lines = final_lines
 
-        # 3. KAYNAK VE LOGO YÖNETİMİ
+            with open(yml_path, 'w', encoding='utf-8') as f:
+                f.writelines(new_lines)
+
+        # 3. KAYNAK YÖNETİMİ (Logo & Hata Önleme)
         res_path = os.path.join(temp_folder, 'res')
         
+        # A) Public.xml İmhası (Build Hatası Çözümü)
+        public_xml = os.path.join(temp_folder, 'res', 'values', 'public.xml')
+        if os.path.exists(public_xml):
+            os.remove(public_xml)
+        
         if logo_file:
-            # İkon klasörlerini temizle (values-v26'ya dokunmadan)
+            # B) İkon klasörlerini temizle (values-v26'ya dokunmadan)
             for root, dirs, files in os.walk(res_path, topdown=False):
                 folder_name = os.path.basename(root)
                 if ("mipmap" in folder_name or "drawable" in folder_name) and ("anydpi" in folder_name or "v26" in folder_name):
                     shutil.rmtree(root)
 
-            # Logoyu kaydet ve dağıt
+            # C) Logoyu kaydet ve dağıt
             temp_logo_path = os.path.join(temp_folder, 'temp_logo.png')
             logo_file.save(temp_logo_path)
             
             for root, dirs, files in os.walk(res_path):
                 if "mipmap" in os.path.basename(root):
+                    # Eski ikonları sil
                     for file in files:
                         if file.startswith("ic_launcher"):
                             os.remove(os.path.join(root, file))
+                    # Yenisini koy
                     shutil.copy(temp_logo_path, os.path.join(root, "ic_launcher.png"))
                     shutil.copy(temp_logo_path, os.path.join(root, "ic_launcher_round.png"))
 
-        # 4. KRİTİK TEMİZLİK (Build Hatası Almamak İçin)
-        # public.xml silindiği için Manifest değişikliği hata vermeyecek!
-        public_xml = os.path.join(temp_folder, 'res', 'values', 'public.xml')
-        if os.path.exists(public_xml):
-            os.remove(public_xml)
-
-        # 5. UYGULAMA İSMİ
+        # 4. UYGULAMA İSMİ
         strings_path = os.path.join(temp_folder, 'res', 'values', 'strings.xml')
         if os.path.exists(strings_path):
             with open(strings_path, 'r', encoding='utf-8') as f:
@@ -99,22 +111,30 @@ def build_apk():
             with open(strings_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-        # 6. BUILD & SIGN
+        # 5. BUILD, ALIGN & SIGN
         safe_name = re.sub(r'[^a-zA-Z0-9_]', '', app_name.replace(" ", "_"))
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
+        apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk") # Hizalanmış ara dosya
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
-        # Build (--use-aapt2 eklendi: Paket adı değişimlerini daha iyi yönetir)
+        # A) Build (--use-aapt2)
         build_cmd = ["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"]
         result = subprocess.run(build_cmd, capture_output=True, text=True)
-        
         if result.returncode != 0:
             raise Exception(f"APKTOOL ERROR:\n{result.stderr}")
 
-        # Sign
-        sign_cmd = ["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", "--out", apk_signed, apk_unsigned]
+        # B) Zipalign (Varsa kullan, yoksa pas geç ama logla)
+        # Zipalign, parsing hatalarını önler.
+        try:
+            subprocess.run(["zipalign", "-p", "-f", "-v", "4", apk_unsigned, apk_aligned], check=True, capture_output=True)
+            target_to_sign = apk_aligned
+        except Exception:
+            # Zipalign yoksa unsigned dosyayı imzala (Riskli ama mecbur)
+            target_to_sign = apk_unsigned
+
+        # C) Sign
+        sign_cmd = ["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", "--out", apk_signed, target_to_sign]
         sign_result = subprocess.run(sign_cmd, capture_output=True, text=True)
-        
         if sign_result.returncode != 0:
             raise Exception(f"SIGNING ERROR:\n{sign_result.stderr}")
 
@@ -123,14 +143,14 @@ def build_apk():
             shutil.rmtree(temp_folder)
         if os.path.exists(apk_unsigned):
             os.remove(apk_unsigned)
+        if os.path.exists(apk_aligned):
+            os.remove(apk_aligned)
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
             <h1 style="color:green; font-size:60px;">✅</h1>
-            <h2 style="font-weight:800;">PACKAGED & SIGNED</h2>
-            <p style="color:#666;">Unique Bundle ID: <b>{new_package_id}</b></p>
-            <p style="font-size:14px; background:#eee; display:inline-block; padding:5px 10px; border-radius:5px;">This APK is 100% unique.</p>
-            <br>
+            <h2 style="font-weight:800;">READY TO INSTALL</h2>
+            <p>New ID: {new_package_id}</p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; font-weight:600; margin-top:20px;">
                 Download APK
             </a>
@@ -140,7 +160,7 @@ def build_apk():
     except Exception as e:
         return f"""
         <div style="padding:40px; font-family:monospace; background:#f8d7da; color:#721c24;">
-            <h2>💥 BUILD LOG</h2>
+            <h2>💥 BUILD ERROR</h2>
             <pre style="background:#fff; padding:15px; border:1px solid #000; white-space: pre-wrap;">{str(e)}</pre>
         </div>
         """
