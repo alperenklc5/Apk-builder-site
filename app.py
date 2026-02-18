@@ -28,10 +28,13 @@ def home():
     return render_template('index.html')
 
 # ══════════════════════════════════════════════════════════════
-#  CLAUDE'UN MOTORU
+#  ANTI-CRASH MOTORU
 # ══════════════════════════════════════════════════════════════
 
-def step1_deep_replace(project_dir, old_pkg, new_pkg):
+def step1_deep_replace_and_fix_headers(project_dir, old_pkg, new_pkg):
+    """
+    Hem içeriği değiştirir hem de Smali başlıklarını (Header) garantiye alır.
+    """
     old_dotted = old_pkg
     new_dotted = new_pkg
     old_slashed = old_pkg.replace('.', '/')
@@ -39,44 +42,70 @@ def step1_deep_replace(project_dir, old_pkg, new_pkg):
 
     for root, dirs, files in os.walk(project_dir):
         if 'build' in dirs: dirs.remove('build')
+        
         for fname in files:
             if fname.endswith(('.smali', '.xml', '.yml', '.json', '.txt', '.html')):
                 fpath = os.path.join(root, fname)
                 try:
                     with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
                         text = f.read()
-                    original = text
+                    
+                    original_text = text
+                    
+                    # 1. Klasik Değişim
                     text = text.replace(old_slashed, new_slashed)
                     text = text.replace(old_dotted, new_dotted)
-                    if text != original:
+                    
+                    # 2. Smali Header Garantisi (Crash Önleyici)
+                    # Lcom/alperenkilic/... -> Lcom/convert/v...
+                    if fname.endswith('.smali'):
+                         # Smali class tanımlarını özellikle kontrol et
+                         if f"L{old_slashed}" in text:
+                             text = text.replace(f"L{old_slashed}", f"L{new_slashed}")
+
+                    if text != original_text:
                         with open(fpath, 'w', encoding='utf-8') as f:
                             f.write(text)
                 except: pass
 
-def step2_fix_manifest(project_dir, new_pkg):
+def step2_manifest_and_provider_fix(project_dir, new_pkg):
+    """
+    Manifest ve Provider Path temizliği.
+    """
     manifest_path = os.path.join(project_dir, 'AndroidManifest.xml')
-    if not os.path.exists(manifest_path): return
+    if os.path.exists(manifest_path):
+        with open(manifest_path, 'r', encoding='utf-8') as f: content = f.read()
 
-    with open(manifest_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+        # Relative path düzeltme (.MainActivity -> com.new.MainActivity)
+        def expand_relative(match):
+            attr, val = match.group(1), match.group(2)
+            if val.startswith('.'): return f'{attr}="{new_pkg}{val}"'
+            return match.group(0)
+        content = re.sub(r'(android:name)="(\.[^"]*)"', expand_relative, content)
 
-    # Relative path düzeltme
-    def expand_relative(match):
-        attr, val = match.group(1), match.group(2)
-        if val.startswith('.'): return f'{attr}="{new_pkg}{val}"'
-        return match.group(0)
-    content = re.sub(r'(android:name)="(\.[^"]*)"', expand_relative, content)
-
-    # Authority Isolation
-    def randomize_auth(match):
-        uid = uuid.uuid4().hex[:8]
-        return f'android:authorities="{new_pkg}.provider.{uid}"'
-    content = re.sub(r'android:authorities="[^"]*"', randomize_auth, content)
+        # Authority Isolation (Rastgele ID)
+        def randomize_auth(match):
+            uid = uuid.uuid4().hex[:8]
+            return f'android:authorities="{new_pkg}.provider.{uid}"'
+        content = re.sub(r'android:authorities="[^"]*"', randomize_auth, content)
+        
+        with open(manifest_path, 'w', encoding='utf-8') as f: f.write(content)
     
-    with open(manifest_path, 'w', encoding='utf-8') as f:
-        f.write(content)
+    # Provider Paths XML (Genelde res/xml altında olur)
+    res_xml = os.path.join(project_dir, 'res', 'xml')
+    if os.path.exists(res_xml):
+        for f in os.listdir(res_xml):
+            if f.endswith('.xml'):
+                fp = os.path.join(res_xml, f)
+                with open(fp, 'r', encoding='utf-8') as file: txt = file.read()
+                if OLD_PACKAGE in txt:
+                    txt = txt.replace(OLD_PACKAGE, new_pkg)
+                    with open(fp, 'w', encoding='utf-8') as file: file.write(txt)
 
-def step3_migrate_smali(project_dir, old_pkg, new_pkg):
+def step3_physical_migration(project_dir, old_pkg, new_pkg):
+    """
+    Klasörleri fiziksel olarak taşı.
+    """
     old_path = old_pkg.replace('.', '/')
     new_path = new_pkg.replace('.', '/')
     smali_dirs = [d for d in os.listdir(project_dir) if d.startswith('smali')]
@@ -85,10 +114,12 @@ def step3_migrate_smali(project_dir, old_pkg, new_pkg):
         base = os.path.join(project_dir, s_dir)
         old_dir_full = os.path.join(base, old_path)
         new_dir_full = os.path.join(base, new_path)
+        
         if os.path.exists(old_dir_full):
             os.makedirs(os.path.dirname(new_dir_full), exist_ok=True)
             if os.path.exists(new_dir_full): shutil.rmtree(new_dir_full)
             shutil.move(old_dir_full, new_dir_full)
+            # Temizlik
             try:
                 p = os.path.dirname(old_dir_full)
                 if not os.listdir(p): os.rmdir(p)
@@ -96,10 +127,12 @@ def step3_migrate_smali(project_dir, old_pkg, new_pkg):
                 if not os.listdir(gp): os.rmdir(gp)
             except: pass
 
-def step4_sanitize_res(project_dir):
+def step4_cleanup_resources(project_dir):
+    # public.xml sil (Resource ID Crash Sebebi #1)
     pxml = os.path.join(project_dir, 'res', 'values', 'public.xml')
     if os.path.exists(pxml): os.remove(pxml)
-    
+
+    # apktool.yml versiyon bump
     yml = os.path.join(project_dir, 'apktool.yml')
     if os.path.exists(yml):
         with open(yml, 'r', encoding='utf-8') as f: lines = f.readlines()
@@ -116,7 +149,7 @@ def step4_sanitize_res(project_dir):
         with open(yml, 'w', encoding='utf-8') as f: f.writelines(nl)
 
 # ══════════════════════════════════════════════════════════════
-#  BUILD ROUTE (CRITICAL FIX: ZIPALIGN ZORUNLU)
+#  BUILD ROUTE
 # ══════════════════════════════════════════════════════════════
 
 @app.route('/build', methods=['POST'])
@@ -137,12 +170,13 @@ def build_apk():
             p = os.path.join(temp_folder, i)
             if os.path.exists(p): shutil.rmtree(p)
 
-        # 2. Logic
+        # 2. Logic (Anti-Crash Sırası)
         new_pkg = f"com.convert.v{job_id}"
-        step1_deep_replace(temp_folder, OLD_PACKAGE, new_pkg)
-        step2_fix_manifest(temp_folder, new_pkg)
-        step3_migrate_smali(temp_folder, OLD_PACKAGE, new_pkg)
-        step4_sanitize_res(temp_folder)
+        
+        step1_deep_replace_and_fix_headers(temp_folder, OLD_PACKAGE, new_pkg) # Metin değişimi
+        step2_manifest_and_provider_fix(temp_folder, new_pkg)                 # Manifest fix
+        step3_physical_migration(temp_folder, OLD_PACKAGE, new_pkg)           # Klasör taşıma
+        step4_cleanup_resources(temp_folder)                                  # ID Temizliği
 
         # 3. Assets
         res_path = os.path.join(temp_folder, 'res')
@@ -165,7 +199,7 @@ def build_apk():
             c = c.replace('WebWrapperBase', app_name)
             with open(s_path, 'w', encoding='utf-8') as f: f.write(c)
 
-        # 4. Keystore
+        # 4. Keystore (Dinamik)
         keystore_path = os.path.join(temp_folder, 'dynamic.jks')
         subprocess.run([
             "keytool", "-genkey", "-v", "-keystore", keystore_path, "-alias", "key", 
@@ -174,49 +208,31 @@ def build_apk():
             "-dname", f"CN={job_id}, OU=App, O=Convert, L=Samsun, ST=TR, C=TR"
         ], check=True, capture_output=True)
 
-        # 5. BUILD - ALIGN - SIGN (KRİTİK BÖLÜM)
+        # 5. BUILD - ALIGN - SIGN
         safe_name = re.sub(r'[^a-zA-Z0-9_]', '', app_name.replace(" ", "_"))
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
-        # A) APKTOOL BUILD
+        # Build
         res = subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], 
                              capture_output=True, text=True)
-        if res.returncode != 0:
-            raise Exception(f"APKTOOL ERROR:\n{res.stderr}")
+        if res.returncode != 0: raise Exception(f"APKTOOL ERROR:\n{res.stderr}")
 
-        # B) ZIPALIGN (ZORUNLU - TRY-EXCEPT YOK!)
-        # -p: page align (resources.arsc için şart)
-        # -f: overwrite
-        # -v: verbose
-        # 4: 4-byte boundary
-        align_res = subprocess.run(
-            ["zipalign", "-p", "-f", "-v", "4", apk_unsigned, apk_aligned],
-            capture_output=True, text=True
-        )
-        
-        if align_res.returncode != 0:
-            # Eğer zipalign hata verirse işlemi DURDUR. Bozuk APK üretme.
-            raise Exception(f"ZIPALIGN ERROR (System missing zipalign?):\n{align_res.stderr}")
+        # Align
+        align_res = subprocess.run(["zipalign", "-p", "-f", "-v", "4", apk_unsigned, apk_aligned], 
+                                   capture_output=True, text=True)
+        if align_res.returncode != 0: raise Exception(f"ZIPALIGN ERROR:\n{align_res.stderr}")
 
-        # C) APKSIGNER (Hizalanmış APK'yı imzala)
-        # İmzalama MUTLAKA zipalign'dan SONRA yapılmalı (V2/V3 için)
+        # Sign
         sign_res = subprocess.run([
-            "apksigner", "sign", 
-            "--ks", keystore_path, 
-            "--ks-pass", "pass:123456", 
-            "--v1-signing-enabled", "true", 
-            "--v2-signing-enabled", "true", 
-            "--v3-signing-enabled", "true", 
-            "--out", apk_signed, 
-            apk_aligned  # <--- DİKKAT: aligned apk girdisi
+            "apksigner", "sign", "--ks", keystore_path, "--ks-pass", "pass:123456", 
+            "--v1-signing-enabled", "true", "--v2-signing-enabled", "true", 
+            "--v3-signing-enabled", "true", "--out", apk_signed, apk_aligned
         ], capture_output=True, text=True)
+        if sign_res.returncode != 0: raise Exception(f"SIGNING ERROR:\n{sign_res.stderr}")
 
-        if sign_res.returncode != 0:
-            raise Exception(f"SIGNING ERROR:\n{sign_res.stderr}")
-
-        # Temizlik
+        # Cleanup
         if os.path.exists(temp_folder): shutil.rmtree(temp_folder)
         if os.path.exists(apk_unsigned): os.remove(apk_unsigned)
         if os.path.exists(apk_aligned): os.remove(apk_aligned)
@@ -224,9 +240,9 @@ def build_apk():
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
             <h1 style="color:green; font-size:60px;">✅</h1>
-            <h2>SUCCESS</h2>
+            <h2>SUCCESS - ANTI CRASH MODE</h2>
             <p>ID: {new_pkg}</p>
-            <p>Aligned: YES (4-byte)</p>
+            <p>Status: Synchronized & Aligned</p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; margin-top:20px;">
                 Download APK
             </a>
