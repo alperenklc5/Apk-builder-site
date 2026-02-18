@@ -251,13 +251,14 @@ def build_apk():
 
         # C) APKSIGNER (Full Signature Support)
         # v1, v2 ve v3 imzalarını aynı anda atarak telefonun 'Güvensiz' uyarısını aşar.
+      # C) APKSIGNER (Hardened Signature)
         sign_cmd = [
             "apksigner", "sign",
             "--ks", KEYSTORE_PATH,
             "--ks-pass", f"pass:{KEY_PASS}",
             "--v1-signing-enabled", "true",
             "--v2-signing-enabled", "true",
-            "--v3-signing-enabled", "true",
+            "--v3-signing-enabled", "false", # V3 bazen bazı MIUI sürümlerinde 'Yüklenmedi'ye sebep olur, false deneyelim
             "--out", apk_signed,
             target_for_signing
         ]
