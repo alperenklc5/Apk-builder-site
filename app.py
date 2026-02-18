@@ -226,14 +226,28 @@ def build_apk():
             c = c.replace('WebWrapperBase', app_name)
             with open(strings_path, 'w', encoding='utf-8') as f: f.write(c)
 
-  # --- 7. TOTAL TRANSFORMATION (CRASH & CONFLICT FIX) ---
+# --- 7. DİNAMİK KEYSTORE VE TOTAL TRANSFORMATION ---
         safe_name = re.sub(r'[^a-zA-Z0-9_]', '', app_name.replace(" ", "_"))
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
+        
+        # HER BUILD İÇİN ÖZEL BİR KEYSTORE ÜRET
+        current_keystore = os.path.join(temp_folder, f"key_{job_id}.jks")
+        try:
+            # keytool komutu ile saniyeler içinde yeni bir kimlik oluşturuyoruz
+            subprocess.run([
+                "keytool", "-genkey", "-v", 
+                "-keystore", current_keystore, 
+                "-alias", "mykey", 
+                "-keyalg", "RSA", "-keysize", 2048, "-validity", "10000",
+                "-storepass", "123456", "-keypass", "123456",
+                "-dname", f"CN={safe_name}, OU=Dev, O=Convert, L=Samsun, ST=TR, C=TR"
+            ], check=True, capture_output=True)
+        except Exception as e:
+            raise Exception(f"KEYTOOL ERROR: Keystore oluşturulamadı.\n{str(e)}")
 
-        # A) SMALI & RESOURCE CONTENT REPLACE
-        # Dosya içindeki paket yollarını (com/alperenkilic -> com/convert) günceller
+        # A) SMALI & RESOURCE CONTENT REPLACE (Önceki kodun aynısı)
         old_path_slash = OLD_PACKAGE_NAME.replace('.', '/')
         new_path_slash = new_package_id.replace('.', '/')
         
@@ -251,8 +265,7 @@ def build_apk():
                                 f.write(text)
                     except: pass
 
-        # B) SMALI FOLDER MOVE (PHYSICAL)
-        # Sınıfları yeni klasöre taşır, çökme hatasını (Crash) bitirir.
+        # B) KLASÖRLERİ FİZİKSEL TAŞI
         smali_folders = [d for d in os.listdir(temp_folder) if d.startswith('smali')]
         for s_dir in smali_folders:
             source_dir = os.path.join(temp_folder, s_dir, old_path_slash)
@@ -264,24 +277,26 @@ def build_apk():
                 shutil.rmtree(source_dir)
 
         # C) BUILD (Apktool)
-        build_res = subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], 
-                                    capture_output=True, text=True)
-        if build_res.returncode != 0:
-            raise Exception(f"APKTOOL ERROR:\n{build_res.stderr}")
+        subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], check=True)
 
-        # D) ZIPALIGN (Hizalama - Yüklenme garantisi)
+        # D) ZIPALIGN
         final_target = apk_unsigned
         try:
             subprocess.run(["zipalign", "-f", "-v", "4", apk_unsigned, apk_aligned], check=True, capture_output=True)
             final_target = apk_aligned
         except: pass
 
-        # E) SIGN (V1 + V2 Signature)
-        # Çakışma yaşamamak için V3 kapalı, V1 ve V2 açık.
-        subprocess.run(["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", 
-                        "--v1-signing-enabled", "true", "--v2-signing-enabled", "true", 
-                        "--v3-signing-enabled", "false", 
-                        "--out", apk_signed, final_target], check=True)
+        # E) SIGN (YENİ ÜRETİLEN KEYSTORE İLE İMZALA)
+        subprocess.run([
+            "apksigner", "sign", 
+            "--ks", current_keystore, 
+            "--ks-pass", "pass:123456", 
+            "--v1-signing-enabled", "true", 
+            "--v2-signing-enabled", "true", 
+            "--v3-signing-enabled", "false", 
+            "--out", apk_signed, 
+            final_target
+        ], check=True)
 
         # F) TEMİZLİK (Output klasörünü şişirme)
         if os.path.exists(temp_folder): shutil.rmtree(temp_folder)
