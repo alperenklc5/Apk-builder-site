@@ -11,7 +11,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
 KEYSTORE_PATH = os.path.join(BASE_DIR, 'yeni.jks')
 KEY_PASS = "123456" 
 
-# Template'in GERÇEK Orijinal Paket Adı (Burası Sabit Kalmalı)
+# Template'in Orijinal Paket Adı (Bunu değiştireceğiz)
 OLD_PACKAGE_NAME = "com.alperenkilic.webwrapperbase"
 
 if not os.path.exists(OUTPUT_DIR):
@@ -21,59 +21,80 @@ if not os.path.exists(OUTPUT_DIR):
 def home():
     return render_template('index.html')
 
-def total_independence_fix(manifest_path, old_pkg, new_pkg, unique_id):
+def nuclear_replace(project_dir, old_pkg, new_pkg):
     """
-    Bu fonksiyon, uygulamayı diğerlerinden tamamen SOYUTLAR.
-    1. Paket Adını değiştirir.
-    2. Authority (Kimlik) değerini benzersiz yapar.
-    3. Kod yollarını (Class Path) sabit tutar ki çökmesin.
+    Bu fonksiyon projedeki HER DOSYAYI açar ve eski paket adını yeniyle değiştirir.
+    Manifest, Smali, XML, Resource... Hiçbir şey kaçmaz.
     """
-    with open(manifest_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+    old_path = old_pkg.replace('.', '/') # com/alperenkilic/webwrapperbase
+    new_path = new_pkg.replace('.', '/') # com/convert/v123456
 
-    # 1. KOD YOLLARINI SABİTLE (Crash Önleyici)
-    # .MainActivity -> com.alperenkilic.webwrapperbase.MainActivity
-    def expand_relative_name(match):
-        attr = match.group(1) 
-        val = match.group(2)
-        if val.startswith('.'):
-            return f'{attr}="{old_pkg}{val}"'
-        return match.group(0)
+    # 1. DOSYA İÇERİKLERİNİ DEĞİŞTİR (Content Replace)
+    # Manifest, Layouts, Strings, Smali Code...
+    for root, dirs, files in os.walk(project_dir):
+        for filename in files:
+            # Sadece metin tabanlı dosyaları işle (Resimlere dokunma)
+            if filename.endswith(('.xml', '.smali', '.yml', '.txt', '.html', '.java')):
+                filepath = os.path.join(root, filename)
+                try:
+                    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                        content = f.read()
+                    
+                    # Eğer eski paket adı varsa değiştir
+                    if old_pkg in content or old_path in content:
+                        # com.alperenkilic -> com.convert
+                        content = content.replace(old_pkg, new_pkg)
+                        # com/alperenkilic -> com/convert (Smali için)
+                        content = content.replace(old_path, new_path)
+                        
+                        with open(filepath, 'w', encoding='utf-8') as f:
+                            f.write(content)
+                except:
+                    pass
 
-    content = re.sub(r'(android:name)="(\.[^"]*)"', expand_relative_name, content)
+    # 2. SMALI KLASÖRLERİNİ FİZİKSEL TAŞI (Folder Move)
+    # Bu adım 'resources.arsc' çakışmasını ve 'Parse Error'ı önler.
+    smali_dirs = [d for d in os.listdir(project_dir) if d.startswith('smali')]
     
-    # 2. PAKET ADINI DEĞİŞTİR (Update Sorunu Çözücü)
-    content = content.replace(f'package="{old_pkg}"', f'package="{new_pkg}"')
+    for smali_dir in smali_dirs:
+        base_smali = os.path.join(project_dir, smali_dir)
+        old_dir = os.path.join(base_smali, old_path)
+        new_dir = os.path.join(base_smali, new_path)
 
-    # 3. AUTHORITY KİMLİĞİNİ BENZERSİZ YAP (Yüklenmedi Sorunu Çözücü)
-    # Eski authority: com.alperenkilic.webwrapperbase.fileprovider
-    # Yeni authority: com.convert.v12345678.fileprovider
-    # Bu sayede telefon "Bu kimlik zaten var" diyemez.
-    
-    # Regex ile authority kısımlarını bulup değiştiriyoruz
-    # Sadece 'android:authorities' içindeki değeri hedefliyoruz
-    def replace_auth(match):
-        return f'android:authorities="{new_pkg}.provider"' # Basit ve benzersiz
-
-    content = re.sub(r'android:authorities="[^"]*"', replace_auth, content)
-    
-    with open(manifest_path, 'w', encoding='utf-8') as f:
-        f.write(content)
+        if os.path.exists(old_dir):
+            # Hedef klasörü oluştur
+            os.makedirs(os.path.dirname(new_dir), exist_ok=True)
+            
+            # Eski klasörü yeni yere taşı
+            if os.path.exists(new_dir):
+                # Çakışma varsa içindekileri taşı
+                for item in os.listdir(old_dir):
+                    shutil.move(os.path.join(old_dir, item), new_dir)
+                shutil.rmtree(old_dir)
+            else:
+                # Direkt taşı
+                shutil.move(old_dir, new_dir)
+            
+            # Arkada kalan boş klasörleri temizle (com/alperenkilic boş kaldıysa sil)
+            try:
+                parent = os.path.dirname(old_dir) # webwrapperbase silindi, alperenkilic'e bak
+                if not os.listdir(parent): os.rmdir(parent)
+                grandparent = os.path.dirname(parent) # com'a bak
+                if not os.listdir(grandparent): os.rmdir(grandparent)
+            except:
+                pass
 
 def clean_apktool_yml(yml_path):
-    """Apktool.yml temizliği ve Versiyon Yükseltme."""
+    """Apktool.yml ayarları."""
     if not os.path.exists(yml_path): return
     with open(yml_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
     
     new_lines = []
     for line in lines:
-        if "renameManifestPackage" in line: continue
-        # Her build'de versiyonu rastgele artır
+        if "renameManifestPackage" in line: continue # Biz manuel yaptık
         if "versionCode:" in line:
             new_lines.append(f"  versionCode: '{random.randint(1000, 99999)}'\n")
-        elif "versionName:" in line:
-            new_lines.append(f"  versionName: '1.{random.randint(0, 99)}.{random.randint(0, 99)}'\n")
         else:
             new_lines.append(line)
     
@@ -96,25 +117,26 @@ def build_apk():
         source_path = TEMPLATE_DL if app_type == 'downloader' else TEMPLATE_STD
         shutil.copytree(source_path, temp_folder)
 
-        # 2. Temizlik
+        # 2. Temizlik (Eski build artıkları)
         for item in ['build', 'dist', 'META-INF']:
             path = os.path.join(temp_folder, item)
             if os.path.exists(path): shutil.rmtree(path)
 
-        # 3. BENZERSİZ PAKET ADI OLUŞTURMA
-        safe_suffix = re.sub(r'[^a-z0-9]', '', app_name.lower())[:6]
-        # Örn: com.convert.v8a7b9c.deneme
+        # 3. YENİ KİMLİK BELİRLEME
+        # Her harf benzersiz olsun
+        safe_suffix = re.sub(r'[^a-z0-9]', '', app_name.lower())[:5] + str(random.randint(10,99))
         new_package_id = f"com.convert.v{job_id}.{safe_suffix}"
 
-        # 4. MANIFEST TAM BAĞIMSIZLIK AYARI
-        manifest_path = os.path.join(temp_folder, 'AndroidManifest.xml')
-        total_independence_fix(manifest_path, OLD_PACKAGE_NAME, new_package_id, job_id)
+        # 4. NÜKLEER DEĞİŞİM (Her şeyi değiştir)
+        nuclear_replace(temp_folder, OLD_PACKAGE_NAME, new_package_id)
 
         # 5. YML FIX
         clean_apktool_yml(os.path.join(temp_folder, 'apktool.yml'))
 
         # 6. KAYNAK & LOGO
         res_path = os.path.join(temp_folder, 'res')
+        
+        # Public.xml sil (Çok önemli, kaynak çakışmasını önler)
         public_xml = os.path.join(temp_folder, 'res', 'values', 'public.xml')
         if os.path.exists(public_xml): os.remove(public_xml)
 
@@ -124,7 +146,7 @@ def build_apk():
                 folder_name = os.path.basename(root)
                 if ("mipmap" in folder_name or "drawable" in folder_name) and ("anydpi" in folder_name or "v26" in folder_name):
                     shutil.rmtree(root)
-            # Kayıt
+            # Logo bas
             temp_logo_path = os.path.join(temp_folder, 'temp_logo.png')
             logo_file.save(temp_logo_path)
             for root, dirs, files in os.walk(res_path):
@@ -139,6 +161,7 @@ def build_apk():
         if os.path.exists(strings_path):
             with open(strings_path, 'r', encoding='utf-8') as f:
                 content = f.read()
+            # Eğer nükleer değişimden kurtulan bir yer varsa diye tekrar değiştir
             content = content.replace('WebWrapperBase', app_name)
             with open(strings_path, 'w', encoding='utf-8') as f:
                 f.write(content)
@@ -179,9 +202,9 @@ def build_apk():
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
             <h1 style="color:green; font-size:60px;">✅</h1>
-            <h2 style="font-weight:800;">INDEPENDENT APP READY!</h2>
-            <p>New Unique ID: {new_package_id}</p>
-            <p style="color:#666;">Will not conflict with previous apps.</p>
+            <h2 style="font-weight:800;">TOTAL SUCCESS</h2>
+            <p>New ID: {new_package_id}</p>
+            <p style="color:#666;">This app is completely unique.</p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; font-weight:600; margin-top:20px;">
                 Download APK
             </a>
