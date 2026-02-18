@@ -16,8 +16,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_STD = os.path.join(BASE_DIR, 'source', 'standard_klasor')
 TEMPLATE_DL = os.path.join(BASE_DIR, 'source', 'downloader_klasor')
 OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
-
-# Template'in GERÇEK Orijinal Paket Adı
 OLD_PACKAGE = "com.alperenkilic.webwrapperbase"
 
 if not os.path.exists(OUTPUT_DIR):
@@ -28,18 +26,17 @@ def home():
     return render_template('index.html')
 
 # ══════════════════════════════════════════════════════════════
-#  AKILLI GHOST MODE (Crash Fix + Authority Sync)
+#  DEBUG GHOST MODE (Logcat Dostu)
 # ══════════════════════════════════════════════════════════════
 
 def step1_reset_files(project_dir):
-    """Resource ID çakışmalarını önlemek için public.xml'i sil."""
     pxml = os.path.join(project_dir, 'res', 'values', 'public.xml')
     if os.path.exists(pxml): os.remove(pxml)
 
-def step2_manifest_analyze_and_fix(project_dir, old_pkg, new_pkg):
+def step2_manifest_debug_fix(project_dir, old_pkg, new_pkg):
     """
-    Manifest'i düzenler ve DEĞİŞTİRİLEN AUTHORITY'LERİ kaydeder.
-    Return: authority_map = {'eski_auth': 'yeni_auth'}
+    Manifest'e DEBUGGABLE="TRUE" ekler.
+    Authority ve Paket isimlerini düzenler.
     """
     manifest_path = os.path.join(project_dir, 'AndroidManifest.xml')
     authority_map = {}
@@ -49,19 +46,23 @@ def step2_manifest_analyze_and_fix(project_dir, old_pkg, new_pkg):
     with open(manifest_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # 1. Paket Adını Değiştir
+    # 1. DEBUG MODU AKTİFLEŞTİR (En Kritik Yer)
+    # <application> etiketini bulup debuggable="true" ekleriz.
+    if 'android:debuggable="true"' not in content:
+        content = content.replace('<application', '<application android:debuggable="true"')
+
+    # 2. Paket Adı Değişimi
     content = content.replace(f'package="{old_pkg}"', f'package="{new_pkg}"')
 
-    # 2. Activity Yollarını Koru (Ghost Mode)
+    # 3. Activity Yollarını Koru (Ghost Mode)
     def fix_activity_path(match):
-        attr = match.group(1)
-        val = match.group(2)
+        attr, val = match.group(1), match.group(2)
         if val.startswith('.'):
-            return f'{attr}="{old_pkg}{val}"' # Eski paket yolunda kalsın
+            return f'{attr}="{old_pkg}{val}"'
         return match.group(0)
     content = re.sub(r'(android:name)="(\.[^"]*)"', fix_activity_path, content)
 
-    # 3. İzin İsimlerini Güncelle (Duplicate Permission Fix)
+    # 4. İzin İsimlerini Güncelle
     def fix_permissions(match):
         full_tag = match.group(0)
         if "permission" in full_tag.lower() or "dynamic_receiver" in full_tag.lower():
@@ -69,20 +70,15 @@ def step2_manifest_analyze_and_fix(project_dir, old_pkg, new_pkg):
         return full_tag
     content = re.sub(r'android:name="[^"]+"', fix_permissions, content)
 
-    # 4. AUTHORITY'LERİ TESPİT ET VE DEĞİŞTİR (CRASH FIX İÇİN KRİTİK)
-    # Önce mevcut authority'leri bulalım
+    # 5. Authority Haritası Çıkar
     matches = re.findall(r'android:authorities="([^"]*)"', content)
     for old_auth in matches:
-        # Yeni bir random authority üret
         uid = uuid.uuid4().hex[:8]
-        # Genelde authority paket ismiyle başlar, onu koruyarak yenileyelim
         if old_pkg in old_auth:
             new_auth = old_auth.replace(old_pkg, new_pkg) + "." + uid
         else:
             new_auth = f"{new_pkg}.provider.{uid}"
-        
         authority_map[old_auth] = new_auth
-        # Manifest içinde değiştir
         content = content.replace(f'android:authorities="{old_auth}"', f'android:authorities="{new_auth}"')
 
     with open(manifest_path, 'w', encoding='utf-8') as f:
@@ -91,14 +87,10 @@ def step2_manifest_analyze_and_fix(project_dir, old_pkg, new_pkg):
     return authority_map
 
 def step3_sync_smali_code(project_dir, old_pkg, new_pkg, authority_map):
-    """
-    Smali kodlarındaki 'R' referanslarını VE Authority Stringlerini günceller.
-    """
+    """Smali kodlarını senkronize et."""
     old_r_path = f"L{old_pkg.replace('.', '/')}/R"
     new_r_path = f"L{new_pkg.replace('.', '/')}/R"
-
-    # BuildConfig içindeki APPLICATION_ID'yi düzeltmek için
-    old_pkg_str = f'"{old_pkg}"' # "com.alperenkilic..."
+    old_pkg_str = f'"{old_pkg}"'
     new_pkg_str = f'"{new_pkg}"'
 
     for root, dirs, files in os.walk(project_dir):
@@ -109,31 +101,19 @@ def step3_sync_smali_code(project_dir, old_pkg, new_pkg, authority_map):
                 try:
                     with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
                         text = f.read()
+                    original = text
                     
-                    original_text = text
+                    if old_r_path in text: text = text.replace(old_r_path, new_r_path)
+                    if old_pkg_str in text: text = text.replace(old_pkg_str, new_pkg_str)
                     
-                    # A. Resource (R) Referanslarını Güncelle
-                    if old_r_path in text:
-                        text = text.replace(old_r_path, new_r_path)
-                    
-                    # B. Authority Stringlerini Güncelle (Crash Sebebi #1)
-                    # Kodun içinde "com.alperen.provider" diye string varsa onu manifestteki yeni haliyle değiştir.
                     for old_auth, new_auth in authority_map.items():
-                        if old_auth in text:
-                            text = text.replace(old_auth, new_auth)
+                        if old_auth in text: text = text.replace(old_auth, new_auth)
 
-                    # C. BuildConfig ve Package Check Güncellemesi
-                    # Sadece "const-string" şeklindeki paket ismi tanımlarını değiştir.
-                    if old_pkg_str in text:
-                         text = text.replace(old_pkg_str, new_pkg_str)
-
-                    if text != original_text:
-                        with open(fpath, 'w', encoding='utf-8') as f:
-                            f.write(text)
+                    if text != original:
+                        with open(fpath, 'w', encoding='utf-8') as f: f.write(text)
                 except: pass
 
 def step4_provider_paths_cleanup(project_dir, old_pkg, new_pkg):
-    """Provider paths XML içindeki paket ismini güncelle."""
     res_xml = os.path.join(project_dir, 'res', 'xml')
     if os.path.exists(res_xml):
         for f in os.listdir(res_xml):
@@ -166,17 +146,12 @@ def build_apk():
             p = os.path.join(temp_folder, i)
             if os.path.exists(p): shutil.rmtree(p)
 
-        # 2. Logic (SYNCED GHOST MODE)
+        # 2. Logic (DEBUG ENABLED)
         new_pkg = f"com.convert.v{job_id}"
         
         step1_reset_files(temp_folder)
-        
-        # Manifest'i düzelt ve değişen Authority haritasını al
-        auth_map = step2_manifest_analyze_and_fix(temp_folder, OLD_PACKAGE, new_pkg)
-        
-        # Bu haritayı kullanarak Smali kodlarını senkronize et
+        auth_map = step2_manifest_debug_fix(temp_folder, OLD_PACKAGE, new_pkg)
         step3_sync_smali_code(temp_folder, OLD_PACKAGE, new_pkg, auth_map)
-        
         step4_provider_paths_cleanup(temp_folder, OLD_PACKAGE, new_pkg)
 
         # 3. Assets
@@ -215,17 +190,14 @@ def build_apk():
         apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
-        # Build
         res = subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], 
                              capture_output=True, text=True)
         if res.returncode != 0: raise Exception(f"APKTOOL ERROR:\n{res.stderr}")
 
-        # Align
         align_res = subprocess.run(["zipalign", "-p", "-f", "-v", "4", apk_unsigned, apk_aligned], 
                                    capture_output=True, text=True)
         if align_res.returncode != 0: raise Exception(f"ZIPALIGN ERROR:\n{align_res.stderr}")
 
-        # Sign
         sign_res = subprocess.run([
             "apksigner", "sign", "--ks", keystore_path, "--ks-pass", "pass:123456", 
             "--v1-signing-enabled", "true", "--v2-signing-enabled", "true", 
@@ -233,24 +205,21 @@ def build_apk():
         ], capture_output=True, text=True)
         if sign_res.returncode != 0: raise Exception(f"SIGNING ERROR:\n{sign_res.stderr}")
 
-        # Cleanup
         if os.path.exists(temp_folder): shutil.rmtree(temp_folder)
         if os.path.exists(apk_unsigned): os.remove(apk_unsigned)
         if os.path.exists(apk_aligned): os.remove(apk_aligned)
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
-            <h1 style="color:green; font-size:60px;">✅</h1>
-            <h2>SUCCESS - FULL SYNC</h2>
+            <h1 style="color:orange; font-size:60px;">🐞</h1>
+            <h2>DEBUG BUILD READY</h2>
             <p>ID: {new_pkg}</p>
-            <p>Authority: Synchronized</p>
-            <p>Permissions: Fixed</p>
+            <p>Status: Debuggable="True"</p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; margin-top:20px;">
-                Download APK
+                Download Debug APK
             </a>
         </div>
         """
-
     except Exception as e:
         return f"<div style='padding:20px; background:#fdd; color:red;'><pre>{str(e)}</pre></div>"
 
