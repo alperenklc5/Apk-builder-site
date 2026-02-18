@@ -226,29 +226,27 @@ def build_apk():
             c = c.replace('WebWrapperBase', app_name)
             with open(strings_path, 'w', encoding='utf-8') as f: f.write(c)
 
-# --- 7. DİNAMİK KEYSTORE VE TOTAL TRANSFORMATION ---
-# --- 7. DİNAMİK KEYSTORE VE TOTAL TRANSFORMATION ---
+# --- 7. ULTIMATE IDENTITY WIPE & DYNAMIC SIGNING ---
         safe_name = re.sub(r'[^a-zA-Z0-9_]', '', app_name.replace(" ", "_"))
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
-        # HER BUILD İÇİN ÖZEL BİR KEYSTORE ÜRET
+        # A) HER SEFERİNDE EŞSİZ KEYSTORE (Daha Önceki Hata Düzeltildi)
         current_keystore = os.path.join(temp_folder, f"key_{job_id}.jks")
         try:
-            # Sayısal değerlerin hepsi string ("") yapıldı, hata düzeltildi.
             subprocess.run([
                 "keytool", "-genkey", "-v", 
                 "-keystore", current_keystore, 
                 "-alias", "mykey", 
                 "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
                 "-storepass", "123456", "-keypass", "123456",
-                "-dname", f"CN={safe_name}, OU=Dev, O=Convert, L=Samsun, ST=TR, C=TR"
+                "-dname", f"CN={job_id}, OU=App, O=Build, L=Samsun, ST=TR, C=TR"
             ], check=True, capture_output=True, text=True)
         except Exception as e:
-            raise Exception(f"KEYTOOL ERROR: Keystore oluşturulamadı.\n{str(e)}")
+            raise Exception(f"KEYTOOL ERROR:\n{str(e)}")
 
-        # A) SMALI & RESOURCE CONTENT REPLACE
+        # B) NÜKLEER İÇERİK DEĞİŞİMİ
         old_path_slash = OLD_PACKAGE_NAME.replace('.', '/')
         new_path_slash = new_package_id.replace('.', '/')
         
@@ -260,13 +258,14 @@ def build_apk():
                         with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
                             text = f.read()
                         if OLD_PACKAGE_NAME in text or old_path_slash in text:
+                            # Sadece paket adını değil, tüm string referanslarını zorla
                             text = text.replace(OLD_PACKAGE_NAME, new_package_id)
                             text = text.replace(old_path_slash, new_path_slash)
                             with open(filepath, 'w', encoding='utf-8') as f:
                                 f.write(text)
                     except: pass
 
-        # B) KLASÖRLERİ FİZİKSEL TAŞI
+        # C) FİZİKSEL KLASÖR TAŞIMA
         smali_folders = [d for d in os.listdir(temp_folder) if d.startswith('smali')]
         for s_dir in smali_folders:
             source_dir = os.path.join(temp_folder, s_dir, old_path_slash)
@@ -277,24 +276,23 @@ def build_apk():
                 shutil.copytree(source_dir, target_dir)
                 shutil.rmtree(source_dir)
 
-        # C) BUILD (Apktool)
+        # D) BUILD & ALIGN
         subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], check=True)
-
-        # D) ZIPALIGN
+        
         final_target = apk_unsigned
         try:
             subprocess.run(["zipalign", "-f", "-v", "4", apk_unsigned, apk_aligned], check=True, capture_output=True)
             final_target = apk_aligned
         except: pass
 
-        # E) SIGN (YENİ ÜRETİLEN KEYSTORE İLE İMZALA)
+        # E) SIGN (V1 + V2 + V3) - Yeni Keystore ile
         subprocess.run([
             "apksigner", "sign", 
             "--ks", current_keystore, 
             "--ks-pass", "pass:123456", 
             "--v1-signing-enabled", "true", 
             "--v2-signing-enabled", "true", 
-            "--v3-signing-enabled", "false", 
+            "--v3-signing-enabled", "true", 
             "--out", apk_signed, 
             final_target
         ], check=True)
