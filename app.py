@@ -226,17 +226,17 @@ def build_apk():
             c = c.replace('WebWrapperBase', app_name)
             with open(strings_path, 'w', encoding='utf-8') as f: f.write(c)
 
-        # 7. BUILD
+  # --- 7. TOTAL TRANSFORMATION (CRASH & CONFLICT FIX) ---
         safe_name = re.sub(r'[^a-zA-Z0-9_]', '', app_name.replace(" ", "_"))
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
 
-        # A) ESKİ VE YENİ YOLLARI HAZIRLA
+        # A) SMALI & RESOURCE CONTENT REPLACE
+        # Dosya içindeki paket yollarını (com/alperenkilic -> com/convert) günceller
         old_path_slash = OLD_PACKAGE_NAME.replace('.', '/')
         new_path_slash = new_package_id.replace('.', '/')
         
-        # B) KOD İÇERİĞİNİ GÜNCELLE (Smali & XML)
         for root, dirs, files in os.walk(temp_folder):
             for filename in files:
                 if filename.endswith(('.smali', '.xml', '.yml', '.txt')):
@@ -251,42 +251,44 @@ def build_apk():
                                 f.write(text)
                     except: pass
 
-        # C) KLASÖRLERİ FİZİKSEL TAŞI (Hata Almamak İçin Kontrollü)
+        # B) SMALI FOLDER MOVE (PHYSICAL)
+        # Sınıfları yeni klasöre taşır, çökme hatasını (Crash) bitirir.
         smali_folders = [d for d in os.listdir(temp_folder) if d.startswith('smali')]
         for s_dir in smali_folders:
             source_dir = os.path.join(temp_folder, s_dir, old_path_slash)
             target_dir = os.path.join(temp_folder, s_dir, new_path_slash)
-            
             if os.path.exists(source_dir):
                 os.makedirs(os.path.dirname(target_dir), exist_ok=True)
-                if os.path.exists(target_dir): shutil.rmtree(target_dir) # Varsa temizle
-                shutil.copytree(source_dir, target_dir) # Taşıma yerine kopyala (daha güvenli)
-                shutil.rmtree(source_dir) # Sonra eskiyi sil
+                if os.path.exists(target_dir): shutil.rmtree(target_dir)
+                shutil.copytree(source_dir, target_dir)
+                shutil.rmtree(source_dir)
 
-        # D) BUILD (En Önemli Kısım)
+        # C) BUILD (Apktool)
         build_res = subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], 
                                     capture_output=True, text=True)
         if build_res.returncode != 0:
-            raise Exception(f"APKTOOL HATASI:\n{build_res.stderr}")
+            raise Exception(f"APKTOOL ERROR:\n{build_res.stderr}")
 
-        # E) ZIPALIGN & APKSIGNER (V1+V2)
-        # Zipalign yüklenmeme sorununu çözer
+        # D) ZIPALIGN (Hizalama - Yüklenme garantisi)
+        final_target = apk_unsigned
         try:
             subprocess.run(["zipalign", "-f", "-v", "4", apk_unsigned, apk_aligned], check=True, capture_output=True)
             final_target = apk_aligned
-        except:
-            final_target = apk_unsigned
+        except: pass
 
-        # İmzalama: Sadece V1 ve V2 (V3 bazen çakışma yapar, kapattım)
+        # E) SIGN (V1 + V2 Signature)
+        # Çakışma yaşamamak için V3 kapalı, V1 ve V2 açık.
         subprocess.run(["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", 
                         "--v1-signing-enabled", "true", "--v2-signing-enabled", "true", 
                         "--v3-signing-enabled", "false", 
                         "--out", apk_signed, final_target], check=True)
 
-        # TEMİZLİK
+        # F) TEMİZLİK (Output klasörünü şişirme)
         if os.path.exists(temp_folder): shutil.rmtree(temp_folder)
         if os.path.exists(apk_unsigned): os.remove(apk_unsigned)
-        if os.path.exists(apk_aligned): os.remove(apk_aligned))
+        if os.path.exists(apk_aligned): os.remove(apk_aligned)
+
+        # Buradan sonrası Build APK fonksiyonunun return kısmıdır, dokunma.
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif;">
