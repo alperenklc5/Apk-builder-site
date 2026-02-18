@@ -26,17 +26,20 @@ def home():
     return render_template('index.html')
 
 # ══════════════════════════════════════════════════════════════
-#  DEBUG GHOST MODE (Logcat Dostu)
+#  LOGIC: GHOST MODE + PROVIDER KILLER
 # ══════════════════════════════════════════════════════════════
 
 def step1_reset_files(project_dir):
+    """Resource ID çakışmalarını önlemek için public.xml'i sil."""
     pxml = os.path.join(project_dir, 'res', 'values', 'public.xml')
     if os.path.exists(pxml): os.remove(pxml)
 
-def step2_manifest_debug_fix(project_dir, old_pkg, new_pkg):
+def step2_manifest_surgical_fix(project_dir, old_pkg, new_pkg):
     """
-    Manifest'e DEBUGGABLE="TRUE" ekler.
-    Authority ve Paket isimlerini düzenler.
+    1. Paket adını değiştir.
+    2. Activity yollarını koru.
+    3. Authority'leri izole et.
+    4. [KRİTİK] ÇÖKEN PROVIDER'I SİL (AndroidX Startup).
     """
     manifest_path = os.path.join(project_dir, 'AndroidManifest.xml')
     authority_map = {}
@@ -46,15 +49,29 @@ def step2_manifest_debug_fix(project_dir, old_pkg, new_pkg):
     with open(manifest_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # 1. DEBUG MODU AKTİFLEŞTİR (En Kritik Yer)
-    # <application> etiketini bulup debuggable="true" ekleriz.
+    # --- A) PROVIDER KILLER (ResourceNotFound Hatasının Kesin Çözümü) ---
+    # <provider ... androidx.startup.InitializationProvider ... /> bloğunu bul ve sil.
+    # Bu provider, paket ismi değişince kaynakları bulamayıp crash veriyor. Silersek crash biter.
+    content = re.sub(
+        r'<provider[^>]*androidx\.startup\.InitializationProvider[^>]*>.*?</provider>', 
+        '', 
+        content, 
+        flags=re.DOTALL
+    )
+    # Tek satırlık self-closing tag hali varsa onu da sil
+    content = re.sub(
+        r'<provider[^>]*androidx\.startup\.InitializationProvider[^>]*/>', 
+        '', 
+        content
+    )
+
+    # --- B) Paket Adı ve Debug Mod ---
     if 'android:debuggable="true"' not in content:
         content = content.replace('<application', '<application android:debuggable="true"')
-
-    # 2. Paket Adı Değişimi
+    
     content = content.replace(f'package="{old_pkg}"', f'package="{new_pkg}"')
 
-    # 3. Activity Yollarını Koru (Ghost Mode)
+    # --- C) Activity Yollarını Koru ---
     def fix_activity_path(match):
         attr, val = match.group(1), match.group(2)
         if val.startswith('.'):
@@ -62,7 +79,7 @@ def step2_manifest_debug_fix(project_dir, old_pkg, new_pkg):
         return match.group(0)
     content = re.sub(r'(android:name)="(\.[^"]*)"', fix_activity_path, content)
 
-    # 4. İzin İsimlerini Güncelle
+    # --- D) İzin İsimlerini Düzelt ---
     def fix_permissions(match):
         full_tag = match.group(0)
         if "permission" in full_tag.lower() or "dynamic_receiver" in full_tag.lower():
@@ -70,7 +87,7 @@ def step2_manifest_debug_fix(project_dir, old_pkg, new_pkg):
         return full_tag
     content = re.sub(r'android:name="[^"]+"', fix_permissions, content)
 
-    # 5. Authority Haritası Çıkar
+    # --- E) Authority Haritası ---
     matches = re.findall(r'android:authorities="([^"]*)"', content)
     for old_auth in matches:
         uid = uuid.uuid4().hex[:8]
@@ -146,11 +163,11 @@ def build_apk():
             p = os.path.join(temp_folder, i)
             if os.path.exists(p): shutil.rmtree(p)
 
-        # 2. Logic (DEBUG ENABLED)
+        # 2. Logic (PROVIDER KILLER ENABLED)
         new_pkg = f"com.convert.v{job_id}"
         
         step1_reset_files(temp_folder)
-        auth_map = step2_manifest_debug_fix(temp_folder, OLD_PACKAGE, new_pkg)
+        auth_map = step2_manifest_surgical_fix(temp_folder, OLD_PACKAGE, new_pkg) # Provider silme burada
         step3_sync_smali_code(temp_folder, OLD_PACKAGE, new_pkg, auth_map)
         step4_provider_paths_cleanup(temp_folder, OLD_PACKAGE, new_pkg)
 
@@ -211,12 +228,13 @@ def build_apk():
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
-            <h1 style="color:orange; font-size:60px;">🐞</h1>
-            <h2>DEBUG BUILD READY</h2>
+            <h1 style="color:green; font-size:60px;">✅</h1>
+            <h2>SUCCESS</h2>
             <p>ID: {new_pkg}</p>
-            <p>Status: Debuggable="True"</p>
+            <p>Provider Killer: <span style="color:red; font-weight:bold">EXECUTED</span></p>
+            <p style="color:gray">AndroidX Startup Removed</p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; margin-top:20px;">
-                Download Debug APK
+                Download APK
             </a>
         </div>
         """
