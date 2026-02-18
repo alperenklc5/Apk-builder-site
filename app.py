@@ -227,6 +227,7 @@ def build_apk():
             with open(strings_path, 'w', encoding='utf-8') as f: f.write(c)
 
 # --- 7. DİNAMİK KEYSTORE VE TOTAL TRANSFORMATION ---
+# --- 7. DİNAMİK KEYSTORE VE TOTAL TRANSFORMATION ---
         safe_name = re.sub(r'[^a-zA-Z0-9_]', '', app_name.replace(" ", "_"))
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
@@ -235,19 +236,19 @@ def build_apk():
         # HER BUILD İÇİN ÖZEL BİR KEYSTORE ÜRET
         current_keystore = os.path.join(temp_folder, f"key_{job_id}.jks")
         try:
-            # keytool komutu ile saniyeler içinde yeni bir kimlik oluşturuyoruz
+            # Sayısal değerlerin hepsi string ("") yapıldı, hata düzeltildi.
             subprocess.run([
                 "keytool", "-genkey", "-v", 
                 "-keystore", current_keystore, 
                 "-alias", "mykey", 
-                "-keyalg", "RSA", "-keysize", 2048, "-validity", "10000",
+                "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
                 "-storepass", "123456", "-keypass", "123456",
                 "-dname", f"CN={safe_name}, OU=Dev, O=Convert, L=Samsun, ST=TR, C=TR"
-            ], check=True, capture_output=True)
+            ], check=True, capture_output=True, text=True)
         except Exception as e:
             raise Exception(f"KEYTOOL ERROR: Keystore oluşturulamadı.\n{str(e)}")
 
-        # A) SMALI & RESOURCE CONTENT REPLACE (Önceki kodun aynısı)
+        # A) SMALI & RESOURCE CONTENT REPLACE
         old_path_slash = OLD_PACKAGE_NAME.replace('.', '/')
         new_path_slash = new_package_id.replace('.', '/')
         
@@ -298,7 +299,7 @@ def build_apk():
             final_target
         ], check=True)
 
-        # F) TEMİZLİK (Output klasörünü şişirme)
+        # F) TEMİZLİK
         if os.path.exists(temp_folder): shutil.rmtree(temp_folder)
         if os.path.exists(apk_unsigned): os.remove(apk_unsigned)
         if os.path.exists(apk_aligned): os.remove(apk_aligned)
