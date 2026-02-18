@@ -35,7 +35,7 @@ def build_apk():
              return f"<h1>Critical Error:</h1><p>Source template not found: {source_path}</p>"
         shutil.copytree(source_path, temp_folder)
 
-        # 2. PAKET ADI DEĞİŞİMİ (YAML Güvenli Mod)
+        # 2. PAKET ADI DEĞİŞİMİ (APKTOOL.YML)
         safe_suffix = re.sub(r'[^a-z0-9]', '', app_name.lower())[:15]
         new_package_id = f"com.convert.app{job_id}.{safe_suffix}"
         
@@ -43,40 +43,44 @@ def build_apk():
         if os.path.exists(yml_path):
             with open(yml_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
-            
-            # Eski renameManifestPackage satırlarını temizle
             new_lines = [line for line in lines if "renameManifestPackage" not in line]
-            # Yeni paket adını ekle
             new_lines.append(f"\nrenameManifestPackage: {new_package_id}\n")
-            
             with open(yml_path, 'w', encoding='utf-8') as f:
                 f.writelines(new_lines)
 
-        # 3. LOGO DEVRİMİ (WEB-P ve PNG ÇAKIŞMASINI ÖNLEME)
+        # 3. KAYNAK YÖNETİMİ (BU KISIM DÜZELTİLDİ)
+        res_path = os.path.join(temp_folder, 'res')
+        
         if logo_file:
-            res_path = os.path.join(temp_folder, 'res')
-            
-            # A) Adaptive Icon klasörlerini sil (Vektör çakışması için)
+            # A) Sadece İKON ile ilgili 'anydpi' veya 'v26' klasörlerini sil (values-v26'ya DOKUNMA!)
             for root, dirs, files in os.walk(res_path, topdown=False):
-                if "anydpi" in root or "v26" in root:
+                folder_name = os.path.basename(root)
+                # Sadece mipmap veya drawable içindeki çakışan klasörleri sil
+                if ("mipmap" in folder_name or "drawable" in folder_name) and ("anydpi" in folder_name or "v26" in folder_name):
                     shutil.rmtree(root)
-            
-            # B) Logoyu geçici kaydet
+
+            # B) Logoyu hazırla
             temp_logo_path = os.path.join(temp_folder, 'temp_logo.png')
             logo_file.save(temp_logo_path)
             
             # C) Mipmap klasörlerini temizle ve yeni logoyu bas
             for root, dirs, files in os.walk(res_path):
                 if "mipmap" in os.path.basename(root):
-                    # ÖNCE TEMİZLİK: İçinde 'ic_launcher' geçen her şeyi sil (.webp, .png, .xml)
+                    # Eski logoları (.webp, .png, .xml) sil
                     for file in files:
                         if file.startswith("ic_launcher"):
                             os.remove(os.path.join(root, file))
                     
-                    # SONRA YÜKLEME: Temiz klasöre kendi png'mizi koyuyoruz
+                    # Yeni logoyu koy
                     shutil.copy(temp_logo_path, os.path.join(root, "ic_launcher.png"))
-                    # Yuvarlak ikon için de aynısını yapıyoruz
                     shutil.copy(temp_logo_path, os.path.join(root, "ic_launcher_round.png"))
+
+        # D) PUBLIC.XML İMHASI (HATA 7837ed ÇÖZÜMÜ)
+        # "No definition for declared symbol" hatasını çözer.
+        # Bu dosyayı silince Apktool kaynak ID'lerini yeniden oluşturur ve eksik dosya hatası vermez.
+        public_xml = os.path.join(temp_folder, 'res', 'values', 'public.xml')
+        if os.path.exists(public_xml):
+            os.remove(public_xml)
 
         # 4. UYGULAMA İSMİ
         strings_path = os.path.join(temp_folder, 'res', 'values', 'strings.xml')
@@ -92,15 +96,14 @@ def build_apk():
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
-        # Build Komutu
+        # Build (-f şart)
         build_cmd = ["apktool", "b", temp_folder, "-o", apk_unsigned, "-f"]
         result = subprocess.run(build_cmd, capture_output=True, text=True)
         
         if result.returncode != 0:
-            # Hata detayını yakala
             raise Exception(f"APKTOOL ERROR:\n{result.stderr}")
 
-        # Sign Komutu
+        # Sign
         sign_cmd = ["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", "--out", apk_signed, apk_unsigned]
         sign_result = subprocess.run(sign_cmd, capture_output=True, text=True)
         
@@ -117,7 +120,7 @@ def build_apk():
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
             <h1 style="color:green; font-size:60px;">✅</h1>
             <h2 style="font-weight:800;">SUCCESS!</h2>
-            <p>ID: {new_package_id}</p>
+            <p>App ID: {new_package_id}</p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; font-weight:600; margin-top:20px;">
                 Download APK
             </a>
