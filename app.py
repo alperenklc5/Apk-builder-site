@@ -227,30 +227,49 @@ def build_apk():
             with open(strings_path, 'w', encoding='utf-8') as f: f.write(c)
 
         # 7. BUILD
+      # --- 7. PROFESSIONAL BUILD, ALIGN & SIGN ---
         safe_name = re.sub(r'[^a-zA-Z0-9_]', '', app_name.replace(" ", "_"))
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
+        apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
+        # A) APKTOOL BUILD
         process = subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], 
                                  capture_output=True, text=True)
         if process.returncode != 0:
             raise Exception(f"APKTOOL ERROR:\n{process.stderr}")
 
-        # Zipalign & Sign
-        target = apk_unsigned
+        # B) ZIPALIGN (Zorunlu Hizalama)
+        # Android'in APK'yı 'bozuk' görmemesi için dosyaları 4-byte sınırına göre dizer.
+        target_for_signing = apk_unsigned
         try:
-            apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
-            subprocess.run(["zipalign", "-p", "-f", "-v", "4", apk_unsigned, apk_aligned], check=True)
-            target = apk_aligned
-        except: pass
+            # -p (page align) ve -f (overwrite) parametreleri ile
+            subprocess.run(["zipalign", "-p", "-f", "-v", "4", apk_unsigned, apk_aligned], check=True, capture_output=True)
+            target_for_signing = apk_aligned
+        except Exception as e:
+            print(f"ZIPALIGN WARNING: {e}")
 
-        subprocess.run(["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", 
-                        "--v1-signing-enabled", "true", "--v2-signing-enabled", "true", 
-                        "--out", apk_signed, target], check=True)
+        # C) APKSIGNER (Full Signature Support)
+        # v1, v2 ve v3 imzalarını aynı anda atarak telefonun 'Güvensiz' uyarısını aşar.
+        sign_cmd = [
+            "apksigner", "sign",
+            "--ks", KEYSTORE_PATH,
+            "--ks-pass", f"pass:{KEY_PASS}",
+            "--v1-signing-enabled", "true",
+            "--v2-signing-enabled", "true",
+            "--v3-signing-enabled", "true",
+            "--out", apk_signed,
+            target_for_signing
+        ]
+        
+        sign_process = subprocess.run(sign_cmd, capture_output=True, text=True)
+        if sign_process.returncode != 0:
+            raise Exception(f"SIGNING ERROR:\n{sign_process.stderr}")
 
+        # --- TEMİZLİK ---
         if os.path.exists(temp_folder): shutil.rmtree(temp_folder)
         if os.path.exists(apk_unsigned): os.remove(apk_unsigned)
-        if os.path.exists(target) and target != apk_unsigned: os.remove(target)
+        if os.path.exists(apk_aligned): os.remove(apk_aligned)
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif;">
