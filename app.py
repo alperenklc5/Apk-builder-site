@@ -11,7 +11,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
 KEYSTORE_PATH = os.path.join(BASE_DIR, 'yeni.jks')
 KEY_PASS = "123456" 
 
-# Template'in Orijinal Paket Adı (Kesin Doğru Olmalı)
+# Template'in GERÇEK Orijinal Paket Adı (Burası Sabit Kalmalı)
 OLD_PACKAGE_NAME = "com.alperenkilic.webwrapperbase"
 
 if not os.path.exists(OUTPUT_DIR):
@@ -21,19 +21,18 @@ if not os.path.exists(OUTPUT_DIR):
 def home():
     return render_template('index.html')
 
-def ghost_mode_manifest_fix(manifest_path, old_pkg, new_pkg):
+def total_independence_fix(manifest_path, old_pkg, new_pkg, unique_id):
     """
-    Bu fonksiyon 'Yüklenmedi' hatasının panzehiridir.
-    1. Kod yollarını sabitler (Crash olmasın diye).
-    2. Paket adını değiştirir (Update demesin diye).
-    3. Authority'leri değiştirir (Yüklenmedi demesin diye).
+    Bu fonksiyon, uygulamayı diğerlerinden tamamen SOYUTLAR.
+    1. Paket Adını değiştirir.
+    2. Authority (Kimlik) değerini benzersiz yapar.
+    3. Kod yollarını (Class Path) sabit tutar ki çökmesin.
     """
     with open(manifest_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # ADIM 1: Önce tüm Activity/Service yollarını ESKİ paket adıyla sabitle (Absolute Path)
-    # Örn: android:name=".MainActivity" -> android:name="com.alperenkilic...MainActivity"
-    # Bunu yapmazsak, paket adı değişince sistem kodları bulamaz ve çöker.
+    # 1. KOD YOLLARINI SABİTLE (Crash Önleyici)
+    # .MainActivity -> com.alperenkilic.webwrapperbase.MainActivity
     def expand_relative_name(match):
         attr = match.group(1) 
         val = match.group(2)
@@ -41,31 +40,28 @@ def ghost_mode_manifest_fix(manifest_path, old_pkg, new_pkg):
             return f'{attr}="{old_pkg}{val}"'
         return match.group(0)
 
-    # android:name niteliklerini yakala ve genişlet
     content = re.sub(r'(android:name)="(\.[^"]*)"', expand_relative_name, content)
     
-    # ADIM 2: Ana Paket Adını Değiştir
+    # 2. PAKET ADINI DEĞİŞTİR (Update Sorunu Çözücü)
     content = content.replace(f'package="{old_pkg}"', f'package="{new_pkg}"')
 
-    # ADIM 3: KRİTİK! Authority Çakışmalarını Önle
-    # Manifest içinde 'authorities' geçen her satırdaki eski paket adını yenisiyle değiştir.
-    # Sadece replace(old, new) yaparsak kod yolları bozulur (Adım 1 bunu korudu ama riskli).
-    # Bu yüzden regex ile sadece 'authorities' kısmına odaklanıyoruz.
+    # 3. AUTHORITY KİMLİĞİNİ BENZERSİZ YAP (Yüklenmedi Sorunu Çözücü)
+    # Eski authority: com.alperenkilic.webwrapperbase.fileprovider
+    # Yeni authority: com.convert.v12345678.fileprovider
+    # Bu sayede telefon "Bu kimlik zaten var" diyemez.
     
-    def replace_authority(match):
-        full_match = match.group(0)
-        return full_match.replace(old_pkg, new_pkg)
+    # Regex ile authority kısımlarını bulup değiştiriyoruz
+    # Sadece 'android:authorities' içindeki değeri hedefliyoruz
+    def replace_auth(match):
+        return f'android:authorities="{new_pkg}.provider"' # Basit ve benzersiz
 
-    content = re.sub(r'android:authorities="[^"]*"', replace_authority, content)
-    
-    # Ekstra Güvenlik: Provider isimlerinde de paket adı geçiyorsa ve authority ise değiştir
-    # Ancak kod yollarına (android:name) dokunmamaya dikkat et.
+    content = re.sub(r'android:authorities="[^"]*"', replace_auth, content)
     
     with open(manifest_path, 'w', encoding='utf-8') as f:
         f.write(content)
 
-def update_apktool_yml(yml_path):
-    """Versiyonu yükseltir ve renameManifestPackage'i temizler."""
+def clean_apktool_yml(yml_path):
+    """Apktool.yml temizliği ve Versiyon Yükseltme."""
     if not os.path.exists(yml_path): return
     with open(yml_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -73,8 +69,11 @@ def update_apktool_yml(yml_path):
     new_lines = []
     for line in lines:
         if "renameManifestPackage" in line: continue
+        # Her build'de versiyonu rastgele artır
         if "versionCode:" in line:
-            new_lines.append(f"  versionCode: '{random.randint(1000, 9999)}'\n")
+            new_lines.append(f"  versionCode: '{random.randint(1000, 99999)}'\n")
+        elif "versionName:" in line:
+            new_lines.append(f"  versionName: '1.{random.randint(0, 99)}.{random.randint(0, 99)}'\n")
         else:
             new_lines.append(line)
     
@@ -89,6 +88,7 @@ def build_apk():
         app_type = request.form.get('app_type')
         logo_file = request.files.get('logo')
         
+        # Her uygulama için BENZERSİZ BİR ID
         job_id = str(uuid.uuid4())[:8]
         temp_folder = os.path.join(OUTPUT_DIR, job_id)
         
@@ -96,21 +96,22 @@ def build_apk():
         source_path = TEMPLATE_DL if app_type == 'downloader' else TEMPLATE_STD
         shutil.copytree(source_path, temp_folder)
 
-        # 2. Meta-Inf ve Build Cache Temizliği
+        # 2. Temizlik
         for item in ['build', 'dist', 'META-INF']:
             path = os.path.join(temp_folder, item)
             if os.path.exists(path): shutil.rmtree(path)
 
-        # 3. YENİ KİMLİK
-        safe_suffix = re.sub(r'[^a-z0-9]', '', app_name.lower())[:10]
+        # 3. BENZERSİZ PAKET ADI OLUŞTURMA
+        safe_suffix = re.sub(r'[^a-z0-9]', '', app_name.lower())[:6]
+        # Örn: com.convert.v8a7b9c.deneme
         new_package_id = f"com.convert.v{job_id}.{safe_suffix}"
 
-        # 4. MANIFEST HAYALET MODU (GHOST MODE)
+        # 4. MANIFEST TAM BAĞIMSIZLIK AYARI
         manifest_path = os.path.join(temp_folder, 'AndroidManifest.xml')
-        ghost_mode_manifest_fix(manifest_path, OLD_PACKAGE_NAME, new_package_id)
+        total_independence_fix(manifest_path, OLD_PACKAGE_NAME, new_package_id, job_id)
 
         # 5. YML FIX
-        update_apktool_yml(os.path.join(temp_folder, 'apktool.yml'))
+        clean_apktool_yml(os.path.join(temp_folder, 'apktool.yml'))
 
         # 6. KAYNAK & LOGO
         res_path = os.path.join(temp_folder, 'res')
@@ -118,12 +119,12 @@ def build_apk():
         if os.path.exists(public_xml): os.remove(public_xml)
 
         if logo_file:
-            # Vektör ikon temizliği
+            # Temizlik
             for root, dirs, files in os.walk(res_path, topdown=False):
                 folder_name = os.path.basename(root)
                 if ("mipmap" in folder_name or "drawable" in folder_name) and ("anydpi" in folder_name or "v26" in folder_name):
                     shutil.rmtree(root)
-            # Logo bas
+            # Kayıt
             temp_logo_path = os.path.join(temp_folder, 'temp_logo.png')
             logo_file.save(temp_logo_path)
             for root, dirs, files in os.walk(res_path):
@@ -133,7 +134,7 @@ def build_apk():
                     shutil.copy(temp_logo_path, os.path.join(root, "ic_launcher.png"))
                     shutil.copy(temp_logo_path, os.path.join(root, "ic_launcher_round.png"))
 
-        # 7. STRING NAME FIX
+        # 7. STRING NAME
         strings_path = os.path.join(temp_folder, 'res', 'values', 'strings.xml')
         if os.path.exists(strings_path):
             with open(strings_path, 'r', encoding='utf-8') as f:
@@ -148,25 +149,24 @@ def build_apk():
         apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
-        # Build (-f şart)
+        # Build
         subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], check=True)
 
-        # Zipalign (Yüklenmedi hatasının gizli sebebi olabilir)
-        # Eğer sunucuda zipalign yoksa, unsigned dosyayı kullanmaya devam et ama loga yaz.
+        # Zipalign
         target_apk = apk_unsigned
         try:
             subprocess.run(["zipalign", "-p", "-f", "-v", "4", apk_unsigned, apk_aligned], check=True)
             target_apk = apk_aligned
         except:
-            print("WARNING: Zipalign not found, skipping alignment.")
+            pass
 
-        # Sign (V1 ve V2 imzalama zorunlu)
+        # Sign (V1+V2)
         subprocess.run([
             "apksigner", "sign", 
             "--ks", KEYSTORE_PATH, 
             "--ks-pass", f"pass:{KEY_PASS}", 
-            "--v1-signing-enabled", "true", # Eski cihazlar için
-            "--v2-signing-enabled", "true", # Yeni cihazlar için (Yüklenmedi hatasını çözer)
+            "--v1-signing-enabled", "true", 
+            "--v2-signing-enabled", "true", 
             "--out", apk_signed, 
             target_apk
         ], check=True)
@@ -179,9 +179,9 @@ def build_apk():
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
             <h1 style="color:green; font-size:60px;">✅</h1>
-            <h2 style="font-weight:800;">READY!</h2>
-            <p>ID: {new_package_id}</p>
-            <p style="color:#666;">Ghost Mode Active: No Conflicts.</p>
+            <h2 style="font-weight:800;">INDEPENDENT APP READY!</h2>
+            <p>New Unique ID: {new_package_id}</p>
+            <p style="color:#666;">Will not conflict with previous apps.</p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; font-weight:600; margin-top:20px;">
                 Download APK
             </a>
