@@ -11,7 +11,7 @@ RUN apt-get update && \
     wget \
     apksigner \
     && rm -rf /var/lib/apt/lists/*
-
+RUN apt-get update && apt-get install -y zipalign
 # En güncel Apktool'u manuel kuruyoruz (2.10.0)
 RUN wget https://github.com/iBotPeaches/Apktool/releases/download/v2.10.0/apktool_2.10.0.jar -O /usr/local/bin/apktool.jar && \
     echo '#!/bin/bash\njava -jar /usr/local/bin/apktool.jar "$@"' > /usr/local/bin/apktool && \
