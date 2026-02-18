@@ -28,7 +28,7 @@ def home():
     return render_template('index.html')
 
 # ══════════════════════════════════════════════════════════════
-#  GHOST MODE MOTORU (Klasör Taşıma YOK, Sadece Kimlik Değişimi)
+#  GHOST MODE MOTORU (İzin Çakışması Düzeltildi)
 # ══════════════════════════════════════════════════════════════
 
 def step1_reset_files(project_dir):
@@ -38,9 +38,10 @@ def step1_reset_files(project_dir):
 
 def step2_ghost_mode_manifest(project_dir, old_pkg, new_pkg):
     """
-    CRASH ÇÖZÜMÜ:
-    Paket adını değiştiriyoruz AMA aktivite yollarını ESKİ pakette tutuyoruz.
-    Böylece kodun yerini değiştirmeden kimliği değiştirmiş oluyoruz.
+    CRASH VE YÜKLENMEME ÇÖZÜMÜ:
+    1. Paket adını değiştir (Kimlik değişimi).
+    2. Aktivite yollarını ESKİ pakette tut (Crash önleme).
+    3. İzin isimlerini YENİ pakete geçir (Duplicate Permission hatası önleme).
     """
     manifest_path = os.path.join(project_dir, 'AndroidManifest.xml')
     if not os.path.exists(manifest_path): return
@@ -48,23 +49,33 @@ def step2_ghost_mode_manifest(project_dir, old_pkg, new_pkg):
     with open(manifest_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # 1. Paket Adını Değiştir (Telefonun gördüğü kimlik)
+    # 1. Paket Adını Değiştir
     content = content.replace(f'package="{old_pkg}"', f'package="{new_pkg}"')
 
-    # 2. Activity Yollarını "Absolute" Yap (Eski paketi işaret etsin)
-    # Çünkü klasörleri taşımadık, kodlar hala eski yerde!
+    # 2. Activity Yollarını "Absolute" Yap ve Koru
     # .MainActivity -> com.alperenkilic.webwrapperbase.MainActivity
     def fix_activity_path(match):
         attr = match.group(1)
         val = match.group(2)
         if val.startswith('.'):
-            # Nokta ile başlıyorsa, başına ESKİ paketi koy
-            return f'{attr}="{old_pkg}{val}"'
+            return f'{attr}="{old_pkg}{val}"' # ESKİ paket (Ghost Mode)
         return match.group(0)
-
     content = re.sub(r'(android:name)="(\.[^"]*)"', fix_activity_path, content)
 
-    # 3. Authority Isolation (Yüklenmeme sorunu için şart)
+    # 3. İZİN İSİMLERİNİ DEĞİŞTİR (Duplicate Permission Hatasının İlacı) [YENİ]
+    # android:name="com.alperenkilic...PERMISSION" -> "com.convert...PERMISSION"
+    def fix_permissions(match):
+        full_tag = match.group(0)
+        # Sadece "permission" geçenleri veya DYNAMIC_RECEIVER geçenleri değiştir
+        if "permission" in full_tag.lower() or "dynamic_receiver" in full_tag.lower():
+            return full_tag.replace(old_pkg, new_pkg)
+        # Diğerleri (Service, Receiver, Provider vb.) ESKİ kalsın ki kod çalışsın
+        return full_tag
+    
+    # android:name="..." olan her yeri kontrol et
+    content = re.sub(r'android:name="[^"]+"', fix_permissions, content)
+
+    # 4. Authority Isolation
     def randomize_auth(match):
         uid = uuid.uuid4().hex[:8]
         return f'android:authorities="{new_pkg}.provider.{uid}"'
@@ -74,17 +85,9 @@ def step2_ghost_mode_manifest(project_dir, old_pkg, new_pkg):
         f.write(content)
 
 def step3_fix_resource_references(project_dir, old_pkg, new_pkg):
-    """
-    EN ÖNEMLİ KISIM:
-    Eski kodlar (com/alperen/...) kaynaklara (R.layout.main) ulaşmak için
-    'Lcom/alperen/R;' sınıfını arar. Ama biz paketi değiştirdiğimiz için
-    yeni kaynaklar 'Lcom/yeni/R;' adresinde oluşacak.
-    
-    Bu fonksiyon, eski kodların içindeki R referanslarını yeni pakete yönlendirir.
-    Böylece "Resources$NotFoundException" CRASH'i engellenir.
-    """
-    old_r_path = f"L{old_pkg.replace('.', '/')}/R" # Lcom/alperen/R
-    new_r_path = f"L{new_pkg.replace('.', '/')}/R" # Lcom/yeni/R
+    """R referanslarını güncelle."""
+    old_r_path = f"L{old_pkg.replace('.', '/')}/R"
+    new_r_path = f"L{new_pkg.replace('.', '/')}/R"
 
     for root, dirs, files in os.walk(project_dir):
         if 'build' in dirs: dirs.remove('build')
@@ -94,16 +97,13 @@ def step3_fix_resource_references(project_dir, old_pkg, new_pkg):
                 try:
                     with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
                         text = f.read()
-                    
                     if old_r_path in text:
-                        # Sadece R (Resource) referanslarını değiştir, class isimlerine dokunma!
                         text = text.replace(old_r_path, new_r_path)
                         with open(fpath, 'w', encoding='utf-8') as f:
                             f.write(text)
                 except: pass
 
 def step4_provider_paths_cleanup(project_dir, old_pkg, new_pkg):
-    """Provider paths içindeki paket ismini güncelle."""
     res_xml = os.path.join(project_dir, 'res', 'xml')
     if os.path.exists(res_xml):
         for f in os.listdir(res_xml):
@@ -136,16 +136,13 @@ def build_apk():
             p = os.path.join(temp_folder, i)
             if os.path.exists(p): shutil.rmtree(p)
 
-        # 2. Logic (GHOST MODE)
+        # 2. Logic (GHOST MODE + PERMISSION FIX)
         new_pkg = f"com.convert.v{job_id}"
         
         step1_reset_files(temp_folder)
-        step2_ghost_mode_manifest(temp_folder, OLD_PACKAGE, new_pkg)     # Manifest hack
-        step3_fix_resource_references(temp_folder, OLD_PACKAGE, new_pkg) # R.java hack
-        step4_provider_paths_cleanup(temp_folder, OLD_PACKAGE, new_pkg)  # Provider fix
-        
-        # NOT: Klasör taşıma (Physical Move) YOK! Kodlar eski yerde kalıyor.
-        # Bu sayede "Class Not Found" hatası imkansız hale geliyor.
+        step2_ghost_mode_manifest(temp_folder, OLD_PACKAGE, new_pkg)     # Manifest Fix
+        step3_fix_resource_references(temp_folder, OLD_PACKAGE, new_pkg) # R.java Fix
+        step4_provider_paths_cleanup(temp_folder, OLD_PACKAGE, new_pkg)  # Provider Fix
 
         # 3. Assets
         res_path = os.path.join(temp_folder, 'res')
@@ -168,7 +165,7 @@ def build_apk():
             c = c.replace('WebWrapperBase', app_name)
             with open(s_path, 'w', encoding='utf-8') as f: f.write(c)
 
-        # 4. Keystore (Dinamik)
+        # 4. Keystore
         keystore_path = os.path.join(temp_folder, 'dynamic.jks')
         subprocess.run([
             "keytool", "-genkey", "-v", "-keystore", keystore_path, "-alias", "key", 
@@ -209,10 +206,9 @@ def build_apk():
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
             <h1 style="color:green; font-size:60px;">✅</h1>
-            <h2>SUCCESS - GHOST MODE</h2>
+            <h2>SUCCESS - PERMISSION FIX</h2>
             <p>ID: {new_pkg}</p>
-            <p>Internal Structure: Preserved (No Move)</p>
-            <p style="color:gray">Crash Probability: Lowest</p>
+            <p>Permission Conflict: Resolved</p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; margin-top:20px;">
                 Download APK
             </a>
