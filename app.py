@@ -1,5 +1,5 @@
 import os, shutil, subprocess, uuid, re, random
-import yaml
+# import yaml  <-- BU SATIRI SİLDİK, ARTIK GEREK YOK
 from flask import Flask, render_template, request, send_file
 
 app = Flask(__name__)
@@ -22,7 +22,7 @@ if not os.path.exists(OUTPUT_DIR):
 def home():
     return render_template('index.html')
 
-# ── CLAUDE'UN MOTORU (Flask Entegreli) ───────────────────────
+# ── CLAUDE'UN MOTORU (NO-YAML VERSION) ───────────────────────
 
 def full_package_rename(project_dir, old_pkg, new_pkg):
     old_path = old_pkg.replace('.', '/')
@@ -38,11 +38,12 @@ def full_package_rename(project_dir, old_pkg, new_pkg):
     step4_fix_res_xml(project_dir, old_pkg, new_pkg)
     # 5. Strings (Authority için)
     step5_fix_strings_xml(project_dir, old_pkg, new_pkg)
-    # 6. Apktool.yml
+    # 6. Apktool.yml (Kütüphanesiz)
     step6_fix_apktool_yml(project_dir)
 
 def step1_fix_manifest(project_dir, old_pkg, new_pkg):
     path = os.path.join(project_dir, 'AndroidManifest.xml')
+    if not os.path.exists(path): return
     with open(path, 'r', encoding='utf-8') as f:
         content = f.read()
 
@@ -131,21 +132,35 @@ def step5_fix_strings_xml(project_dir, old_pkg, new_pkg):
                 f.write(text)
 
 def step6_fix_apktool_yml(project_dir):
+    """YAML kütüphanesi olmadan manuel düzenleme"""
     yml_path = os.path.join(project_dir, 'apktool.yml')
     if not os.path.exists(yml_path): return
-    try:
-        with open(yml_path, 'r') as f:
-            data = yaml.safe_load(f)
-        if 'renameManifestPackage' in data:
-            data['renameManifestPackage'] = None
-        # Versiyon artır
-        if 'versionInfo' in data and 'versionCode' in data['versionInfo']:
-             data['versionInfo']['versionCode'] = str(int(data['versionInfo']['versionCode']) + random.randint(1,100))
+    
+    with open(yml_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    
+    new_lines = []
+    for line in lines:
+        # renameManifestPackage varsa sil
+        if "renameManifestPackage" in line: continue
         
-        with open(yml_path, 'w') as f:
-            yaml.dump(data, f, default_flow_style=False)
-    except:
-        pass
+        # VersionCode bul ve artır
+        if "versionCode:" in line:
+            try:
+                # "  versionCode: '1'" gibi satırları parse et
+                parts = line.split(':')
+                if len(parts) > 1:
+                    ver = int(re.sub(r"[^\d]", "", parts[1]))
+                    new_ver = ver + random.randint(1, 100)
+                    new_lines.append(f"  versionCode: '{new_ver}'\n")
+                    continue
+            except:
+                pass # Hata olursa dokunma
+        
+        new_lines.append(line)
+        
+    with open(yml_path, 'w', encoding='utf-8') as f:
+        f.writelines(new_lines)
 
 def _merge_move(src, dst):
     for item in os.listdir(src):
@@ -186,7 +201,7 @@ def build_apk():
             p = os.path.join(temp_folder, item)
             if os.path.exists(p): shutil.rmtree(p)
 
-        # 3. YENİ KİMLİK
+        # 3. YENİ KİMLİK (Benzersiz)
         safe_suffix = re.sub(r'[^a-z0-9]', '', app_name.lower())[:5] + str(random.randint(10,99))
         new_package_id = f"com.convert.v{job_id}.{safe_suffix}"
 
@@ -219,9 +234,10 @@ def build_apk():
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
+        # Apktool Build
         subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], check=True)
         
-        # Zipalign & Sign
+        # Zipalign (Varsa kullan)
         target = apk_unsigned
         try:
             apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
@@ -229,17 +245,25 @@ def build_apk():
             target = apk_aligned
         except: pass
 
+        # Sign
         subprocess.run(["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", 
                         "--v1-signing-enabled", "true", "--v2-signing-enabled", "true", 
                         "--out", apk_signed, target], check=True)
 
         if os.path.exists(temp_folder): shutil.rmtree(temp_folder)
         if os.path.exists(apk_unsigned): os.remove(apk_unsigned)
+        if os.path.exists(apk_aligned): os.remove(apk_aligned)
         
-        return f"<h1>SUCCESS: {new_package_id}</h1> <a href='/download/{safe_name}.apk'>Download</a>"
+        return f"""
+        <div style="text-align:center; padding:100px; font-family:sans-serif;">
+            <h1 style="color:green;">SUCCESS</h1>
+            <p>New ID: {new_package_id}</p>
+            <a href='/download/{safe_name}.apk' style="background:#000; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;">Download APK</a>
+        </div>
+        """
 
     except Exception as e:
-        return f"ERROR: {str(e)}"
+        return f"<h1>Error:</h1><pre>{str(e)}</pre>"
 
 @app.route('/download/<filename>')
 def download(filename):
