@@ -36,7 +36,6 @@ def build_apk():
         shutil.copytree(source_path, temp_folder)
 
         # 2. PAKET ADI DEĞİŞİMİ (YAML Güvenli Mod)
-        # İsmi sadeleştir
         safe_suffix = re.sub(r'[^a-z0-9]', '', app_name.lower())[:15]
         new_package_id = f"com.convert.app{job_id}.{safe_suffix}"
         
@@ -45,35 +44,39 @@ def build_apk():
             with open(yml_path, 'r', encoding='utf-8') as f:
                 lines = f.readlines()
             
-            # YAML'ı satır satır tara, eski renameManifestPackage varsa sil
+            # Eski renameManifestPackage satırlarını temizle
             new_lines = [line for line in lines if "renameManifestPackage" not in line]
-            
-            # En sona temiz bir şekilde ekle
+            # Yeni paket adını ekle
             new_lines.append(f"\nrenameManifestPackage: {new_package_id}\n")
             
             with open(yml_path, 'w', encoding='utf-8') as f:
                 f.writelines(new_lines)
 
-        # 3. LOGO TEMİZLİĞİ (Resources)
+        # 3. LOGO DEVRİMİ (WEB-P ve PNG ÇAKIŞMASINI ÖNLEME)
         if logo_file:
             res_path = os.path.join(temp_folder, 'res')
             
-            # A) Adaptive Icon klasörlerini sil (Vektör çakışmasını önle)
+            # A) Adaptive Icon klasörlerini sil (Vektör çakışması için)
             for root, dirs, files in os.walk(res_path, topdown=False):
                 if "anydpi" in root or "v26" in root:
                     shutil.rmtree(root)
             
-            # B) Logoyu kaydet
+            # B) Logoyu geçici kaydet
             temp_logo_path = os.path.join(temp_folder, 'temp_logo.png')
             logo_file.save(temp_logo_path)
             
-            # C) Mipmap klasörlerine dağıt
+            # C) Mipmap klasörlerini temizle ve yeni logoyu bas
             for root, dirs, files in os.walk(res_path):
                 if "mipmap" in os.path.basename(root):
+                    # ÖNCE TEMİZLİK: İçinde 'ic_launcher' geçen her şeyi sil (.webp, .png, .xml)
+                    for file in files:
+                        if file.startswith("ic_launcher"):
+                            os.remove(os.path.join(root, file))
+                    
+                    # SONRA YÜKLEME: Temiz klasöre kendi png'mizi koyuyoruz
                     shutil.copy(temp_logo_path, os.path.join(root, "ic_launcher.png"))
-                    # Varsa round ikonu da değiştir
-                    if os.path.exists(os.path.join(root, "ic_launcher_round.png")):
-                        shutil.copy(temp_logo_path, os.path.join(root, "ic_launcher_round.png"))
+                    # Yuvarlak ikon için de aynısını yapıyoruz
+                    shutil.copy(temp_logo_path, os.path.join(root, "ic_launcher_round.png"))
 
         # 4. UYGULAMA İSMİ
         strings_path = os.path.join(temp_folder, 'res', 'values', 'strings.xml')
@@ -84,18 +87,18 @@ def build_apk():
             with open(strings_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-        # 5. BUILD & SIGN (LOGLAMA AÇIK)
+        # 5. BUILD & SIGN
         safe_name = re.sub(r'[^a-zA-Z0-9_]', '', app_name.replace(" ", "_"))
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
-        # Build Komutu - capture_output=True ile hatayı yakalıyoruz
+        # Build Komutu
         build_cmd = ["apktool", "b", temp_folder, "-o", apk_unsigned, "-f"]
         result = subprocess.run(build_cmd, capture_output=True, text=True)
         
-        # Eğer build başarısızsa, stderr çıktısını döndür (BİZE LAZIM OLAN BU)
         if result.returncode != 0:
-            raise Exception(f"APKTOOL ERROR:\n{result.stderr}\n\nSTDOUT:\n{result.stdout}")
+            # Hata detayını yakala
+            raise Exception(f"APKTOOL ERROR:\n{result.stderr}")
 
         # Sign Komutu
         sign_cmd = ["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", "--out", apk_signed, apk_unsigned]
@@ -122,16 +125,13 @@ def build_apk():
         """
 
     except Exception as e:
-        # Hatayı ekrana formatlı bas
         return f"""
         <div style="padding:40px; font-family:monospace; background:#f8d7da; color:#721c24;">
             <h2>💥 BUILD FAILED</h2>
-            <p>Hata Detayı (Bunu bana gönder):</p>
             <pre style="background:#fff; padding:15px; border:1px solid #000; white-space: pre-wrap;">{str(e)}</pre>
         </div>
         """
     finally:
-        # Temp klasörü temizle (opsiyonel, debug için kapatabilirsin)
         if temp_folder and os.path.exists(temp_folder):
              try: shutil.rmtree(temp_folder) 
              except: pass
