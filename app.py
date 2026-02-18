@@ -1,5 +1,4 @@
 import os, shutil, subprocess, uuid, re, random
-import yaml  # Artık requirements.txt sayesinde bu çalışacak!
 from flask import Flask, render_template, request, send_file
 
 app = Flask(__name__)
@@ -12,7 +11,7 @@ OUTPUT_DIR = os.path.join(BASE_DIR, 'output')
 KEYSTORE_PATH = os.path.join(BASE_DIR, 'yeni.jks')
 KEY_PASS = "123456" 
 
-# Template'in GERÇEK Orijinal Paket Adı
+# Template'in Orijinal Paket Adı
 OLD_PACKAGE_NAME = "com.alperenkilic.webwrapperbase"
 
 if not os.path.exists(OUTPUT_DIR):
@@ -22,7 +21,7 @@ if not os.path.exists(OUTPUT_DIR):
 def home():
     return render_template('index.html')
 
-# ── CLAUDE'UN MOTORU (YAML DESTEKLİ) ─────────────────────────
+# ─── CLAUDE'UN MOTORU (DÜZELTİLMİŞ TEMİZLİK) ───
 
 def full_package_rename(project_dir, old_pkg, new_pkg):
     old_path = old_pkg.replace('.', '/')
@@ -32,13 +31,13 @@ def full_package_rename(project_dir, old_pkg, new_pkg):
     step1_fix_manifest(project_dir, old_pkg, new_pkg)
     # 2. Smali İçerik
     step2_fix_smali_content(project_dir, old_path, new_path)
-    # 3. Smali Klasör Taşıma (En Kritik Adım)
+    # 3. Smali Klasör Taşıma
     step3_move_smali_dirs(project_dir, old_path, new_path)
     # 4. Res XML
     step4_fix_res_xml(project_dir, old_pkg, new_pkg)
-    # 5. Strings (Authority için)
+    # 5. Strings
     step5_fix_strings_xml(project_dir, old_pkg, new_pkg)
-    # 6. Apktool.yml (YAML modülü ile)
+    # 6. Apktool.yml (Kütüphanesiz)
     step6_fix_apktool_yml(project_dir)
 
 def step1_fix_manifest(project_dir, old_pkg, new_pkg):
@@ -55,13 +54,8 @@ def step1_fix_manifest(project_dir, old_pkg, new_pkg):
 
     # Package değişimi
     content = content.replace(f'package="{old_pkg}"', f'package="{new_pkg}"')
-    # Authority ve diğer referanslar
+    # Authority
     content = content.replace(old_pkg, new_pkg)
-    
-    # Authority Regex Fix (Ekstra Güvenlik)
-    def replace_auth(match):
-        return f'android:authorities="{new_pkg}.provider"'
-    content = re.sub(r'android:authorities="[^"]*"', replace_auth, content)
 
     with open(path, 'w', encoding='utf-8') as f:
         f.write(content)
@@ -96,7 +90,6 @@ def step3_move_smali_dirs(project_dir, old_path, new_path):
         else:
             shutil.move(old_dir, new_dir)
         
-        # Boş klasör temizliği
         try:
             top_level = old_path.split('/')[0]
             _cleanup_empty(os.path.join(base, top_level))
@@ -106,7 +99,7 @@ def step4_fix_res_xml(project_dir, old_pkg, new_pkg):
     res_path = os.path.join(project_dir, 'res')
     if not os.path.exists(res_path): return
     
-    # public.xml SİL (Kritik)
+    # Public.xml SİL
     public_xml = os.path.join(res_path, 'values', 'public.xml')
     if os.path.exists(public_xml): os.remove(public_xml)
 
@@ -139,23 +132,26 @@ def step5_fix_strings_xml(project_dir, old_pkg, new_pkg):
 def step6_fix_apktool_yml(project_dir):
     yml_path = os.path.join(project_dir, 'apktool.yml')
     if not os.path.exists(yml_path): return
-    try:
-        with open(yml_path, 'r') as f:
-            data = yaml.safe_load(f)
+    
+    with open(yml_path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    
+    new_lines = []
+    for line in lines:
+        if "renameManifestPackage" in line: continue
+        if "versionCode:" in line:
+            try:
+                parts = line.split(':')
+                if len(parts) > 1:
+                    ver = int(re.sub(r"[^\d]", "", parts[1]))
+                    new_ver = ver + random.randint(1, 100)
+                    new_lines.append(f"  versionCode: '{new_ver}'\n")
+                    continue
+            except: pass
+        new_lines.append(line)
         
-        # renameManifestPackage varsa sil (Biz manuel yaptık)
-        if 'renameManifestPackage' in data:
-            data['renameManifestPackage'] = None
-            
-        # Versiyon Code Artır
-        if 'versionInfo' in data and 'versionCode' in data['versionInfo']:
-             old_ver = int(data['versionInfo']['versionCode'])
-             data['versionInfo']['versionCode'] = str(old_ver + random.randint(100, 900))
-        
-        with open(yml_path, 'w') as f:
-            yaml.dump(data, f, default_flow_style=False)
-    except:
-        pass
+    with open(yml_path, 'w', encoding='utf-8') as f:
+        f.writelines(new_lines)
 
 def _merge_move(src, dst):
     for item in os.listdir(src):
@@ -191,31 +187,31 @@ def build_apk():
         source_path = TEMPLATE_DL if app_type == 'downloader' else TEMPLATE_STD
         shutil.copytree(source_path, temp_folder)
 
-        # 2. Temizlik
+        # 2. Temizlik (Build artıkları)
         for item in ['build', 'dist', 'META-INF']:
             p = os.path.join(temp_folder, item)
             if os.path.exists(p): shutil.rmtree(p)
 
-        # 3. YENİ KİMLİK (Benzersiz Paket Adı)
-        # com.convert.v{job_id}.{suffix} -> Benzersiz ve yasal format
+        # 3. YENİ KİMLİK
         safe_suffix = re.sub(r'[^a-z0-9]', '', app_name.lower())[:5] + str(random.randint(10,99))
         new_package_id = f"com.convert.v{job_id}.{safe_suffix}"
 
         # 4. CLAUDE MOTORUNU ÇALIŞTIR
         full_package_rename(temp_folder, OLD_PACKAGE_NAME, new_package_id)
 
-        # 5. LOGO & ICON TEMİZLİĞİ
+        # 5. LOGO (BURASI DÜZELTİLDİ - KRİTİK NOKTA)
         res_path = os.path.join(temp_folder, 'res')
         if logo_file:
-            # Vektör ikonları sil
+            # SADECE 'mipmap' veya 'drawable' içindeki v26'yı sil. 
+            # 'values-v26'ya DOKUNMA!
             for root, dirs, files in os.walk(res_path, topdown=False):
-                if "anydpi" in root or "v26" in root: shutil.rmtree(root)
+                folder_name = os.path.basename(root)
+                if ("mipmap" in folder_name or "drawable" in folder_name):
+                    if "anydpi" in folder_name or "v26" in folder_name:
+                        shutil.rmtree(root)
             
-            # Yeni logoyu kaydet
             temp_logo = os.path.join(temp_folder, 'temp.png')
             logo_file.save(temp_logo)
-            
-            # Dağıt
             for root, dirs, files in os.walk(res_path):
                 if "mipmap" in os.path.basename(root):
                     for f in files:
@@ -230,22 +226,17 @@ def build_apk():
             c = c.replace('WebWrapperBase', app_name)
             with open(strings_path, 'w', encoding='utf-8') as f: f.write(c)
 
-        # 7. BUILD (DETAYLI HATA YAKALAMA)
+        # 7. BUILD
         safe_name = re.sub(r'[^a-zA-Z0-9_]', '', app_name.replace(" ", "_"))
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
-        # Build Komutu
-        build_process = subprocess.run(
-            ["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], 
-            capture_output=True, 
-            text=True
-        )
-        
-        if build_process.returncode != 0:
-            raise Exception(f"APKTOOL BUILD ERROR:\n{build_process.stderr}")
+        process = subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], 
+                                 capture_output=True, text=True)
+        if process.returncode != 0:
+            raise Exception(f"APKTOOL ERROR:\n{process.stderr}")
 
-        # Zipalign
+        # Zipalign & Sign
         target = apk_unsigned
         try:
             apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
@@ -253,39 +244,24 @@ def build_apk():
             target = apk_aligned
         except: pass
 
-        # Sign
-        sign_process = subprocess.run(
-            ["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", 
-             "--v1-signing-enabled", "true", "--v2-signing-enabled", "true", 
-             "--out", apk_signed, target],
-            capture_output=True,
-            text=True
-        )
+        subprocess.run(["apksigner", "sign", "--ks", KEYSTORE_PATH, "--ks-pass", f"pass:{KEY_PASS}", 
+                        "--v1-signing-enabled", "true", "--v2-signing-enabled", "true", 
+                        "--out", apk_signed, target], check=True)
 
-        if sign_process.returncode != 0:
-            raise Exception(f"SIGNING ERROR:\n{sign_process.stderr}")
-
-        # Temizlik
         if os.path.exists(temp_folder): shutil.rmtree(temp_folder)
         if os.path.exists(apk_unsigned): os.remove(apk_unsigned)
-        if os.path.exists(apk_aligned) and apk_aligned != apk_unsigned: os.remove(apk_aligned)
+        if os.path.exists(target) and target != apk_unsigned: os.remove(target)
         
         return f"""
-        <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
-            <h1 style="color:green; font-size:60px;">✅</h1>
-            <h2>SUCCESS</h2>
+        <div style="text-align:center; padding:100px; font-family:sans-serif;">
+            <h1 style="color:green;">✅ SUCCESS!</h1>
             <p>ID: {new_package_id}</p>
-            <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px;">Download APK</a>
+            <a href='/download/{safe_name}.apk' style="background:#000; color:#fff; padding:10px 20px;">Download APK</a>
         </div>
         """
 
     except Exception as e:
-        return f"""
-        <div style="padding:20px; font-family:monospace; background:#ffebee; border:1px solid red;">
-            <h2 style="color:red;">BUILD FAILED</h2>
-            <pre style="white-space: pre-wrap;">{str(e)}</pre>
-        </div>
-        """
+        return f"<div style='background:#fdd; padding:20px; color:red;'><h2>ERROR</h2><pre>{str(e)}</pre></div>"
 
 @app.route('/download/<filename>')
 def download(filename):
