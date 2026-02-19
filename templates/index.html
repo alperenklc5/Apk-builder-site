@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ConvertToAPK – Free Website to APK Converter</title>
+    
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
@@ -30,7 +34,7 @@
 
         /* Navbar & Hero */
         .navbar-custom { background: rgba(10,10,11,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 16px 0; position: sticky; top: 0; z-index: 100; }
-        .nav-brand { font-size: 1.15rem; font-weight: 700; color: var(--text); text-decoration: none; }
+        .nav-brand { font-size: 1.15rem; font-weight: 700; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 10px; }
         .nav-brand span { color: var(--accent); }
         .hero { padding: 80px 0 50px; text-align: center; position: relative; z-index: 1; }
         .hero-title { font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 800; letter-spacing: -2.5px; background: linear-gradient(135deg, #ffffff 30%, #8aadff 70%, #a78bfa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -43,25 +47,12 @@
         .form-control:focus, .form-select:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(79,142,255,0.1) !important; outline: none; }
         .form-select option { background: #111114; color: var(--text); }
         
-        /* 🎨 ÖZEL DOSYA SEÇ BUTONU (ŞIK VE SİMETRİK) */
+        /* 🎨 ÖZEL DOSYA SEÇ BUTONU */
         .form-control[type="file"] { padding: 8px 12px !important; cursor: pointer; }
         .form-control[type="file"]::-webkit-file-upload-button {
-            background: rgba(79,142,255,0.1);
-            border: 1px solid rgba(79,142,255,0.3);
-            color: var(--accent);
-            padding: 8px 16px;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-family: var(--sans);
-            font-weight: 600;
-            cursor: pointer;
-            margin-right: 16px;
-            transition: all 0.2s ease;
+            background: rgba(79,142,255,0.1); border: 1px solid rgba(79,142,255,0.3); color: var(--accent); padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-family: var(--sans); font-weight: 600; cursor: pointer; margin-right: 16px; transition: all 0.2s ease;
         }
-        .form-control[type="file"]::-webkit-file-upload-button:hover {
-            background: var(--accent);
-            color: #fff;
-        }
+        .form-control[type="file"]::-webkit-file-upload-button:hover { background: var(--accent); color: #fff; }
 
         .btn-build { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--accent), #6b5eff); border: none; border-radius: 10px; color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; letter-spacing: 0.5px; }
         .btn-build:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(79,142,255,0.2); }
@@ -72,23 +63,15 @@
         .footer-links button:hover { color: var(--text); text-decoration: underline; }
         .footer-copy { font-size: 0.75rem; color: #3a3a4a; margin-top: 12px; font-family: var(--mono); }
 
-        /* ── MODAL (POPUP) STİLLERİ ── */
+        /* MODAL STİLLERİ */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; }
         .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; width: 90%; max-width: 500px; text-align: center; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
-        
-        /* Modal İkonları (Emojiler yerine temiz SVG) */
         .modal-icon { font-size: 4rem; margin-bottom: 15px; display: inline-block; }
         .icon-success { color: var(--success); }
         .icon-error { color: #ff4d4d; }
-
-        /* Loading Animasyonu */
         .spinner { width: 50px; height: 50px; border: 3px solid rgba(79,142,255,0.1); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* Reklam Alanı Taslağı */
         .ad-space { background: #0a0a0b; border: 1px dashed #2a2a35; border-radius: 10px; padding: 30px; margin: 20px 0; color: #555; font-family: var(--mono); font-size: 0.8rem; }
-        
-        /* Kapatma Butonu */
         .close-btn { position: absolute; top: 15px; right: 20px; background: none; border: none; color: var(--muted); font-size: 1.5rem; cursor: pointer; transition: color 0.2s; }
         .close-btn:hover { color: var(--text); }
     </style>
@@ -99,7 +82,10 @@
 
     <nav class="navbar-custom">
         <div class="container d-flex align-items-center justify-content-between">
-            <a class="nav-brand" href="/">Convert<span>ToAPK</span></a>
+            <a class="nav-brand" href="/">
+                <img src="favicon.png" alt="ConvertToAPK Logo" width="32" height="32" style="border-radius: 50%;">
+                Convert<span>ToAPK</span>
+            </a>
         </div>
     </nav>
 
@@ -154,12 +140,8 @@
                 <div class="spinner"></div>
                 <h4 style="color: white; font-weight: 600;">Building Your APK...</h4>
                 <p style="color: var(--muted); font-size: 0.9rem; margin-top: 8px;">This usually takes about 30 seconds. Please wait.</p>
-                
-                <div class="ad-space">
-                    [ ADVERTISEMENT SPACE ]<br>Google AdSense or Custom Ads
-                </div>
+                <div class="ad-space">[ ADVERTISEMENT SPACE ]<br>Google AdSense or Custom Ads</div>
             </div>
-
             <div id="successState" style="display: none;">
                 <i class="bi bi-check2-circle modal-icon icon-success"></i>
                 <h4 style="color: white; margin-bottom: 20px; font-weight: 600;">Build Complete!</h4>
@@ -169,7 +151,6 @@
                 <br><br>
                 <button onclick="closeBuildModal()" style="background:none; border:none; color:var(--muted); text-decoration:underline; cursor:pointer;">Create another app</button>
             </div>
-
             <div id="errorState" style="display: none;">
                 <button class="close-btn" onclick="closeBuildModal()">&times;</button>
                 <i class="bi bi-exclamation-circle modal-icon icon-error"></i>
@@ -205,18 +186,15 @@
     <script>
         document.getElementById('buildForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
             document.getElementById('buildModal').style.display = 'flex';
             document.getElementById('loadingState').style.display = 'block';
             document.getElementById('successState').style.display = 'none';
             document.getElementById('errorState').style.display = 'none';
 
             const formData = new FormData(this);
-
             try {
                 const response = await fetch('/build', { method: 'POST', body: formData });
                 const result = await response.json();
-
                 document.getElementById('loadingState').style.display = 'none';
 
                 if (result.status === 'success') {
@@ -233,9 +211,7 @@
             }
         });
 
-        function closeBuildModal() {
-            document.getElementById('buildModal').style.display = 'none';
-        }
+        function closeBuildModal() { document.getElementById('buildModal').style.display = 'none'; }
 
         document.getElementById('contactForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -243,7 +219,6 @@
             btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Sending...';
             
             const formData = new FormData(this);
-            
             try {
                 const response = await fetch('/contact', { method: 'POST', body: formData });
                 const result = await response.json();
@@ -258,9 +233,7 @@
                         this.reset();
                     }, 2000);
                 }
-            } catch (error) {
-                btn.innerHTML = '<i class="bi bi-x-circle"></i> Error!';
-            }
+            } catch (error) { btn.innerHTML = '<i class="bi bi-x-circle"></i> Error!'; }
         });
     </script>
 </body>
