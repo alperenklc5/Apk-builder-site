@@ -26,21 +26,15 @@ def home():
     return render_template('index.html')
 
 # ══════════════════════════════════════════════════════════════
-#  LOGIC: GHOST MODE + PROVIDER KILLER
+#  LOGIC: GHOST MODE + PROVIDER KILLER + URL INJECTOR
 # ══════════════════════════════════════════════════════════════
 
 def step1_reset_files(project_dir):
-    """Resource ID çakışmalarını önlemek için public.xml'i sil."""
     pxml = os.path.join(project_dir, 'res', 'values', 'public.xml')
     if os.path.exists(pxml): os.remove(pxml)
 
 def step2_manifest_surgical_fix(project_dir, old_pkg, new_pkg):
-    """
-    1. Paket adını değiştir.
-    2. Activity yollarını koru.
-    3. Authority'leri izole et.
-    4. [KRİTİK] ÇÖKEN PROVIDER'I SİL (AndroidX Startup).
-    """
+    """Crash ve Yükleme sorunlarını çözer."""
     manifest_path = os.path.join(project_dir, 'AndroidManifest.xml')
     authority_map = {}
     
@@ -49,37 +43,23 @@ def step2_manifest_surgical_fix(project_dir, old_pkg, new_pkg):
     with open(manifest_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # --- A) PROVIDER KILLER (ResourceNotFound Hatasının Kesin Çözümü) ---
-    # <provider ... androidx.startup.InitializationProvider ... /> bloğunu bul ve sil.
-    # Bu provider, paket ismi değişince kaynakları bulamayıp crash veriyor. Silersek crash biter.
-    content = re.sub(
-        r'<provider[^>]*androidx\.startup\.InitializationProvider[^>]*>.*?</provider>', 
-        '', 
-        content, 
-        flags=re.DOTALL
-    )
-    # Tek satırlık self-closing tag hali varsa onu da sil
-    content = re.sub(
-        r'<provider[^>]*androidx\.startup\.InitializationProvider[^>]*/>', 
-        '', 
-        content
-    )
+    # 1. PROVIDER KILLER (Crash Çözümü)
+    content = re.sub(r'<provider[^>]*androidx\.startup\.InitializationProvider[^>]*>.*?</provider>', '', content, flags=re.DOTALL)
+    content = re.sub(r'<provider[^>]*androidx\.startup\.InitializationProvider[^>]*/>', '', content)
 
-    # --- B) Paket Adı ve Debug Mod ---
+    # 2. Paket Adı ve Debug
     if 'android:debuggable="true"' not in content:
         content = content.replace('<application', '<application android:debuggable="true"')
-    
     content = content.replace(f'package="{old_pkg}"', f'package="{new_pkg}"')
 
-    # --- C) Activity Yollarını Koru ---
+    # 3. Activity Yollarını Koru
     def fix_activity_path(match):
         attr, val = match.group(1), match.group(2)
-        if val.startswith('.'):
-            return f'{attr}="{old_pkg}{val}"'
+        if val.startswith('.'): return f'{attr}="{old_pkg}{val}"'
         return match.group(0)
     content = re.sub(r'(android:name)="(\.[^"]*)"', fix_activity_path, content)
 
-    # --- D) İzin İsimlerini Düzelt ---
+    # 4. İzin İsimleri ve Authority
     def fix_permissions(match):
         full_tag = match.group(0)
         if "permission" in full_tag.lower() or "dynamic_receiver" in full_tag.lower():
@@ -87,7 +67,6 @@ def step2_manifest_surgical_fix(project_dir, old_pkg, new_pkg):
         return full_tag
     content = re.sub(r'android:name="[^"]+"', fix_permissions, content)
 
-    # --- E) Authority Haritası ---
     matches = re.findall(r'android:authorities="([^"]*)"', content)
     for old_auth in matches:
         uid = uuid.uuid4().hex[:8]
@@ -98,13 +77,13 @@ def step2_manifest_surgical_fix(project_dir, old_pkg, new_pkg):
         authority_map[old_auth] = new_auth
         content = content.replace(f'android:authorities="{old_auth}"', f'android:authorities="{new_auth}"')
 
-    with open(manifest_path, 'w', encoding='utf-8') as f:
-        f.write(content)
-        
+    with open(manifest_path, 'w', encoding='utf-8') as f: f.write(content)
     return authority_map
 
-def step3_sync_smali_code(project_dir, old_pkg, new_pkg, authority_map):
-    """Smali kodlarını senkronize et."""
+def step3_sync_smali_code(project_dir, old_pkg, new_pkg, authority_map, target_url):
+    """
+    Smali kodlarındaki Paket Adı, Authority ve URL'i günceller.
+    """
     old_r_path = f"L{old_pkg.replace('.', '/')}/R"
     new_r_path = f"L{new_pkg.replace('.', '/')}/R"
     old_pkg_str = f'"{old_pkg}"'
@@ -113,18 +92,30 @@ def step3_sync_smali_code(project_dir, old_pkg, new_pkg, authority_map):
     for root, dirs, files in os.walk(project_dir):
         if 'build' in dirs: dirs.remove('build')
         for fname in files:
-            if fname.endswith('.smali'):
+            # Sadece Smali değil, XML ve TXT dosyalarına da bak (URL için)
+            if fname.endswith(('.smali', '.xml', '.txt')):
                 fpath = os.path.join(root, fname)
                 try:
                     with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
                         text = f.read()
                     original = text
                     
+                    # A. Temel Değişiklikler
                     if old_r_path in text: text = text.replace(old_r_path, new_r_path)
                     if old_pkg_str in text: text = text.replace(old_pkg_str, new_pkg_str)
-                    
                     for old_auth, new_auth in authority_map.items():
                         if old_auth in text: text = text.replace(old_auth, new_auth)
+
+                    # B. URL INJECTOR (Google yerine senin siten)
+                    # Eğer kullanıcı bir URL girdiyse
+                    if target_url and len(target_url) > 5:
+                        # 1. Google.com'u bul ve değiştir
+                        if "google.com" in text:
+                            text = re.sub(r'https?://(www\.)?google\.com/?', target_url, text)
+                        
+                        # 2. strings.xml içindeki launcher_url'i bul ve değiştir
+                        if 'name="launcher_url"' in text:
+                             text = re.sub(r'<string name="launcher_url">.*?</string>', f'<string name="launcher_url">{target_url}</string>', text)
 
                     if text != original:
                         with open(fpath, 'w', encoding='utf-8') as f: f.write(text)
@@ -151,6 +142,8 @@ def build_apk():
     try:
         app_name = request.form.get('app_name')
         app_type = request.form.get('app_type')
+        # URL'i formdan alıyoruz (index.html'de input name="url" olmalı)
+        target_url = request.form.get('url') 
         logo_file = request.files.get('logo')
         
         job_id = str(uuid.uuid4())[:8]
@@ -163,12 +156,13 @@ def build_apk():
             p = os.path.join(temp_folder, i)
             if os.path.exists(p): shutil.rmtree(p)
 
-        # 2. Logic (PROVIDER KILLER ENABLED)
+        # 2. Logic (URL FIX EKLENDI)
         new_pkg = f"com.convert.v{job_id}"
         
         step1_reset_files(temp_folder)
-        auth_map = step2_manifest_surgical_fix(temp_folder, OLD_PACKAGE, new_pkg) # Provider silme burada
-        step3_sync_smali_code(temp_folder, OLD_PACKAGE, new_pkg, auth_map)
+        auth_map = step2_manifest_surgical_fix(temp_folder, OLD_PACKAGE, new_pkg)
+        # URL'i buraya gönderiyoruz 👇
+        step3_sync_smali_code(temp_folder, OLD_PACKAGE, new_pkg, auth_map, target_url)
         step4_provider_paths_cleanup(temp_folder, OLD_PACKAGE, new_pkg)
 
         # 3. Assets
@@ -228,13 +222,13 @@ def build_apk():
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
-            <h1 style="color:green; font-size:60px;">✅</h1>
-            <h2>SUCCESS</h2>
+            <h1 style="color:green; font-size:60px;">🚀</h1>
+            <h2>SYSTEM OPERATIONAL</h2>
             <p>ID: {new_pkg}</p>
-            <p>Provider Killer: <span style="color:red; font-weight:bold">EXECUTED</span></p>
-            <p style="color:gray">AndroidX Startup Removed</p>
+            <p>Target URL: {target_url}</p>
+            <p style="color:green">CRASH FIXED</p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; margin-top:20px;">
-                Download APK
+                Download Final APK
             </a>
         </div>
         """
