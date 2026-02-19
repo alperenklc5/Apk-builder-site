@@ -26,7 +26,7 @@ def home():
     return render_template('index.html')
 
 # ══════════════════════════════════════════════════════════════
-#  LOGIC: GHOST MODE + PROVIDER KILLER + URL INJECTOR
+#  LOGIC: GHOST MODE + PROVIDER KILLER + AGGRESSIVE URL INJECTOR
 # ══════════════════════════════════════════════════════════════
 
 def step1_reset_files(project_dir):
@@ -34,7 +34,6 @@ def step1_reset_files(project_dir):
     if os.path.exists(pxml): os.remove(pxml)
 
 def step2_manifest_surgical_fix(project_dir, old_pkg, new_pkg):
-    """Crash ve Yükleme sorunlarını çözer."""
     manifest_path = os.path.join(project_dir, 'AndroidManifest.xml')
     authority_map = {}
     
@@ -43,23 +42,23 @@ def step2_manifest_surgical_fix(project_dir, old_pkg, new_pkg):
     with open(manifest_path, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # 1. PROVIDER KILLER (Crash Çözümü)
+    # Provider Killer
     content = re.sub(r'<provider[^>]*androidx\.startup\.InitializationProvider[^>]*>.*?</provider>', '', content, flags=re.DOTALL)
     content = re.sub(r'<provider[^>]*androidx\.startup\.InitializationProvider[^>]*/>', '', content)
 
-    # 2. Paket Adı ve Debug
+    # Paket Adı ve Debug
     if 'android:debuggable="true"' not in content:
         content = content.replace('<application', '<application android:debuggable="true"')
     content = content.replace(f'package="{old_pkg}"', f'package="{new_pkg}"')
 
-    # 3. Activity Yollarını Koru
+    # Activity Yolları (Ghost Mode)
     def fix_activity_path(match):
         attr, val = match.group(1), match.group(2)
         if val.startswith('.'): return f'{attr}="{old_pkg}{val}"'
         return match.group(0)
     content = re.sub(r'(android:name)="(\.[^"]*)"', fix_activity_path, content)
 
-    # 4. İzin İsimleri ve Authority
+    # İzinler
     def fix_permissions(match):
         full_tag = match.group(0)
         if "permission" in full_tag.lower() or "dynamic_receiver" in full_tag.lower():
@@ -67,6 +66,7 @@ def step2_manifest_surgical_fix(project_dir, old_pkg, new_pkg):
         return full_tag
     content = re.sub(r'android:name="[^"]+"', fix_permissions, content)
 
+    # Authority
     matches = re.findall(r'android:authorities="([^"]*)"', content)
     for old_auth in matches:
         uid = uuid.uuid4().hex[:8]
@@ -81,41 +81,46 @@ def step2_manifest_surgical_fix(project_dir, old_pkg, new_pkg):
     return authority_map
 
 def step3_sync_smali_code(project_dir, old_pkg, new_pkg, authority_map, target_url):
-    """
-    Smali kodlarındaki Paket Adı, Authority ve URL'i günceller.
-    """
     old_r_path = f"L{old_pkg.replace('.', '/')}/R"
     new_r_path = f"L{new_pkg.replace('.', '/')}/R"
     old_pkg_str = f'"{old_pkg}"'
     new_pkg_str = f'"{new_pkg}"'
 
+    # URL kontrolü: Başında http yoksa ekle
+    if target_url and not target_url.startswith('http'):
+        target_url = 'https://' + target_url
+
     for root, dirs, files in os.walk(project_dir):
         if 'build' in dirs: dirs.remove('build')
         for fname in files:
-            # Sadece Smali değil, XML ve TXT dosyalarına da bak (URL için)
-            if fname.endswith(('.smali', '.xml', '.txt')):
+            if fname.endswith(('.smali', '.xml', '.txt', '.java')):
                 fpath = os.path.join(root, fname)
                 try:
                     with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
                         text = f.read()
                     original = text
                     
-                    # A. Temel Değişiklikler
+                    # A. Paket ve Authority Sync
                     if old_r_path in text: text = text.replace(old_r_path, new_r_path)
                     if old_pkg_str in text: text = text.replace(old_pkg_str, new_pkg_str)
                     for old_auth, new_auth in authority_map.items():
                         if old_auth in text: text = text.replace(old_auth, new_auth)
 
-                    # B. URL INJECTOR (Google yerine senin siten)
-                    # Eğer kullanıcı bir URL girdiyse
+                    # B. AGRESİF URL INJECTOR
                     if target_url and len(target_url) > 5:
-                        # 1. Google.com'u bul ve değiştir
-                        if "google.com" in text:
-                            text = re.sub(r'https?://(www\.)?google\.com/?', target_url, text)
+                        # Olası tüm Google varyasyonlarını acımasızca ez
+                        text = text.replace("https://www.google.com/", target_url)
+                        text = text.replace("https://www.google.com", target_url)
+                        text = text.replace("https://google.com/", target_url)
+                        text = text.replace("https://google.com", target_url)
+                        text = text.replace("http://www.google.com/", target_url)
+                        text = text.replace("http://www.google.com", target_url)
+                        text = text.replace("http://google.com/", target_url)
+                        text = text.replace("http://google.com", target_url)
                         
-                        # 2. strings.xml içindeki launcher_url'i bul ve değiştir
-                        if 'name="launcher_url"' in text:
-                             text = re.sub(r'<string name="launcher_url">.*?</string>', f'<string name="launcher_url">{target_url}</string>', text)
+                        # strings.xml içinde Google içeren herhangi bir değişken varsa onu da ez
+                        if "google.com" in text and fname == "strings.xml":
+                            text = re.sub(r'<string name="([^"]+)">[^<]*google\.com[^<]*</string>', rf'<string name="\1">{target_url}</string>', text)
 
                     if text != original:
                         with open(fpath, 'w', encoding='utf-8') as f: f.write(text)
@@ -142,30 +147,31 @@ def build_apk():
     try:
         app_name = request.form.get('app_name')
         app_type = request.form.get('app_type')
-        # URL'i formdan alıyoruz (index.html'de input name="url" olmalı)
-        target_url = request.form.get('url') 
+        
+        # HTML formundan URL'i alıyoruz (Çoklu olasılık kontrolü)
+        target_url = request.form.get('url') or request.form.get('app_url') or request.form.get('website')
+        if not target_url:
+            target_url = "https://google.com" # Fallback (Hata vermemesi için)
+
         logo_file = request.files.get('logo')
         
         job_id = str(uuid.uuid4())[:8]
         temp_folder = os.path.join(OUTPUT_DIR, job_id)
         
-        # 1. Kaynak
         source_path = TEMPLATE_DL if app_type == 'downloader' else TEMPLATE_STD
         shutil.copytree(source_path, temp_folder)
         for i in ['build', 'dist', 'META-INF']:
             p = os.path.join(temp_folder, i)
             if os.path.exists(p): shutil.rmtree(p)
 
-        # 2. Logic (URL FIX EKLENDI)
         new_pkg = f"com.convert.v{job_id}"
         
         step1_reset_files(temp_folder)
         auth_map = step2_manifest_surgical_fix(temp_folder, OLD_PACKAGE, new_pkg)
-        # URL'i buraya gönderiyoruz 👇
         step3_sync_smali_code(temp_folder, OLD_PACKAGE, new_pkg, auth_map, target_url)
         step4_provider_paths_cleanup(temp_folder, OLD_PACKAGE, new_pkg)
 
-        # 3. Assets
+        # Assets
         res_path = os.path.join(temp_folder, 'res')
         if logo_file:
             for root, dirs, files in os.walk(res_path, topdown=False):
@@ -186,7 +192,7 @@ def build_apk():
             c = c.replace('WebWrapperBase', app_name)
             with open(s_path, 'w', encoding='utf-8') as f: f.write(c)
 
-        # 4. Keystore
+        # Keystore
         keystore_path = os.path.join(temp_folder, 'dynamic.jks')
         subprocess.run([
             "keytool", "-genkey", "-v", "-keystore", keystore_path, "-alias", "key", 
@@ -195,18 +201,16 @@ def build_apk():
             "-dname", f"CN={job_id}, OU=App, O=Convert, L=Samsun, ST=TR, C=TR"
         ], check=True, capture_output=True)
 
-        # 5. BUILD - ALIGN - SIGN
+        # Build & Sign
         safe_name = re.sub(r'[^a-zA-Z0-9_]', '', app_name.replace(" ", "_"))
         apk_unsigned = os.path.join(OUTPUT_DIR, f"{job_id}_u.apk")
         apk_aligned = os.path.join(OUTPUT_DIR, f"{job_id}_a.apk")
         apk_signed = os.path.join(OUTPUT_DIR, f"{safe_name}.apk")
         
-        res = subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], 
-                             capture_output=True, text=True)
+        res = subprocess.run(["apktool", "b", temp_folder, "-o", apk_unsigned, "-f", "--use-aapt2"], capture_output=True, text=True)
         if res.returncode != 0: raise Exception(f"APKTOOL ERROR:\n{res.stderr}")
 
-        align_res = subprocess.run(["zipalign", "-p", "-f", "-v", "4", apk_unsigned, apk_aligned], 
-                                   capture_output=True, text=True)
+        align_res = subprocess.run(["zipalign", "-p", "-f", "-v", "4", apk_unsigned, apk_aligned], capture_output=True, text=True)
         if align_res.returncode != 0: raise Exception(f"ZIPALIGN ERROR:\n{align_res.stderr}")
 
         sign_res = subprocess.run([
@@ -222,13 +226,12 @@ def build_apk():
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
-            <h1 style="color:green; font-size:60px;">🚀</h1>
-            <h2>SYSTEM OPERATIONAL</h2>
+            <h1 style="color:green; font-size:60px;">🎯</h1>
+            <h2>TARGET INJECTED</h2>
             <p>ID: {new_pkg}</p>
-            <p>Target URL: {target_url}</p>
-            <p style="color:green">CRASH FIXED</p>
+            <p style="color:blue">Injected URL: <b>{target_url}</b></p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; margin-top:20px;">
-                Download Final APK
+                Download APK
             </a>
         </div>
         """
