@@ -1,14 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="description" content="Convert your website, blog, or web app into a fully functional Android APK in seconds. Free, fast, and no coding required. Create your Android app today!">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>ConvertToAPK - Free Website to Android App Converter</title>
+    <meta name="title" content="ConvertToAPK - Free Website to Android App Converter">
+    <meta name="description" content="Convert your website, blog, or web app into a fully functional Android APK in seconds. Free, fast, and no coding required. Create your Android app today!">
     <meta name="keywords" content="website to apk, convert website to app, web to apk converter, free apk builder, web2apk, html to android app">
     <meta name="author" content="ConvertToAPK">
-    <meta name="robots" content="index, follow"> <meta property="og:type" content="website">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:type" content="website">
     <meta property="og:url" content="https://converttoapk.com/">
     <meta property="og:title" content="ConvertToAPK - Turn Any Website Into an App">
     <meta property="og:description" content="Convert your website into a fully functional Android App in seconds. No coding required!">
-    <meta property="og:image" content="https://converttoapk.com/favicon.png"> <meta property="twitter:card" content="summary">
+    <meta property="og:image" content="https://converttoapk.com/favicon.png">
+
+    <meta property="twitter:card" content="summary">
     <meta property="twitter:url" content="https://converttoapk.com/">
     <meta property="twitter:title" content="ConvertToAPK - Free Website to App Converter">
     <meta property="twitter:description" content="Convert your website into a fully functional Android App in seconds. No coding required!">
@@ -18,18 +27,19 @@
     <link rel="apple-touch-icon" href="/favicon.png?v=5">
 
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
         :root {
             --bg: #0a0a0b; --surface: #111114; --border: rgba(255,255,255,0.07);
             --text: #f0f0f2; --muted: #6b6b7a; --accent: #4f8eff; --accent2: #a78bfa;
-            --success: #22d3a6; --android: #3DDC84; --mono: 'JetBrains Mono', monospace; --sans: 'Sora', sans-serif;
-            
+            --success: #22d3a6; --android: #3DDC84; 
+            --mono: 'JetBrains Mono', monospace; --sans: 'Sora', sans-serif;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: var(--bg); font-family: var(--sans); color: var(--text); min-height: 100vh; overflow-x: hidden; }
         
-        /* Arka Plan Efektleri */
         body::before {
             content: ''; position: fixed; inset: 0;
             background-image: linear-gradient(rgba(79,142,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(79,142,255,0.03) 1px, transparent 1px);
@@ -42,19 +52,10 @@
 
         /* Navbar & Hero */
         .navbar-custom { background: rgba(10,10,11,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 16px 0; position: sticky; top: 0; z-index: 100; }
-        .nav-brand { 
-    font-size: 1.15rem; 
-    font-weight: 700; 
-    color: var(--text); 
-    text-decoration: none; 
-    display: flex; 
-    align-items: center; 
-    /* Boşluk daraltıldı (daha sıkı duracak) */
-    gap: 6px; 
-}
-/* Eski 'span' kuralını sildik, yerine bunları ekledik: */
-.brand-to { color: var(--accent); } /* Mavi */
-.brand-apk { color: var(--android); } /* Yeşil */
+        .nav-brand { font-size: 1.15rem; font-weight: 700; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 6px; }
+        .brand-to { color: var(--accent); }
+        .brand-apk { color: var(--android); }
+        
         .hero { padding: 80px 0 50px; text-align: center; position: relative; z-index: 1; }
         .hero-title { font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 800; letter-spacing: -2.5px; background: linear-gradient(135deg, #ffffff 30%, #8aadff 70%, #a78bfa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .hero-sub { color: var(--muted); max-width: 500px; margin: 16px auto; line-height: 1.65; }
@@ -66,11 +67,9 @@
         .form-control:focus, .form-select:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(79,142,255,0.1) !important; outline: none; }
         .form-select option { background: #111114; color: var(--text); }
         
-        /* 🎨 ÖZEL DOSYA SEÇ BUTONU */
+        /* Dosya Seç Butonu */
         .form-control[type="file"] { padding: 8px 12px !important; cursor: pointer; }
-        .form-control[type="file"]::-webkit-file-upload-button {
-            background: rgba(79,142,255,0.1); border: 1px solid rgba(79,142,255,0.3); color: var(--accent); padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-family: var(--sans); font-weight: 600; cursor: pointer; margin-right: 16px; transition: all 0.2s ease;
-        }
+        .form-control[type="file"]::-webkit-file-upload-button { background: rgba(79,142,255,0.1); border: 1px solid rgba(79,142,255,0.3); color: var(--accent); padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-family: var(--sans); font-weight: 600; cursor: pointer; margin-right: 16px; transition: all 0.2s ease; }
         .form-control[type="file"]::-webkit-file-upload-button:hover { background: var(--accent); color: #fff; }
 
         .btn-build { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--accent), #6b5eff); border: none; border-radius: 10px; color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; letter-spacing: 0.5px; }
@@ -82,7 +81,7 @@
         .footer-links button:hover { color: var(--text); text-decoration: underline; }
         .footer-copy { font-size: 0.75rem; color: #3a3a4a; margin-top: 12px; font-family: var(--mono); }
 
-        /* MODAL STİLLERİ */
+        /* Modal (Popup) */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; }
         .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; width: 90%; max-width: 500px; text-align: center; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
         .modal-icon { font-size: 4rem; margin-bottom: 15px; display: inline-block; }
@@ -96,13 +95,15 @@
     </style>
 </head>
 <body>
+    <div class="glow-blob glow-blob-1"></div>
+    <div class="glow-blob glow-blob-2"></div>
+
     <nav class="navbar-custom">
         <div class="container d-flex align-items-center justify-content-between">
-           <a class="nav-brand" href="/">
-    <img src="/favicon.png?v=5" alt="ConvertToAPK Logo" width="48" height="48" style="border-radius: 50%; box-shadow: 0 0 10px rgba(79,142,255,0.3);">
-    
-    <span>Convert<span class="brand-to">To</span><span class="brand-apk">APK</span></span>
-</a>
+            <a class="nav-brand" href="/">
+                <img src="/favicon.png?v=5" alt="ConvertToAPK Logo" width="48" height="48" style="border-radius: 50%; box-shadow: 0 0 10px rgba(79,142,255,0.3);">
+                <span>Convert<span class="brand-to">To</span><span class="brand-apk">APK</span></span>
+            </a>
         </div>
     </nav>
 
