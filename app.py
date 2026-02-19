@@ -6,7 +6,7 @@ import uuid
 import random
 import json
 from flask import Flask, render_template, request, send_file
-
+from flask import Flask, render_template, request, send_file, jsonify
 app = Flask(__name__)
 
 # ══════════════════════════════════════════════════════════════
@@ -149,10 +149,6 @@ def step5_json_config_injector(project_dir, target_url, app_name):
         except Exception:
             pass
 
-# ══════════════════════════════════════════════════════════════
-#  BUILD ROUTE
-# ══════════════════════════════════════════════════════════════
-
 @app.route('/build', methods=['POST'])
 def build_apk():
     temp_folder = None
@@ -179,8 +175,6 @@ def build_apk():
         auth_map = step2_manifest_surgical_fix(temp_folder, OLD_PACKAGE, new_pkg)
         step3_sync_smali_code(temp_folder, OLD_PACKAGE, new_pkg, auth_map, target_url)
         step4_provider_paths_cleanup(temp_folder, OLD_PACKAGE, new_pkg)
-        
-        # BULDUĞUN JSON DOSYASINI İNFAZ EDEN KOMUT 👇
         step5_json_config_injector(temp_folder, target_url, app_name)
 
         # Assets
@@ -206,12 +200,7 @@ def build_apk():
 
         # Keystore
         keystore_path = os.path.join(temp_folder, 'dynamic.jks')
-        subprocess.run([
-            "keytool", "-genkey", "-v", "-keystore", keystore_path, "-alias", "key", 
-            "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000",
-            "-storepass", "123456", "-keypass", "123456",
-            "-dname", f"CN={job_id}, OU=App, O=Convert, L=Samsun, ST=TR, C=TR"
-        ], check=True, capture_output=True)
+        subprocess.run(["keytool", "-genkey", "-v", "-keystore", keystore_path, "-alias", "key", "-keyalg", "RSA", "-keysize", "2048", "-validity", "10000", "-storepass", "123456", "-keypass", "123456", "-dname", f"CN={job_id}, OU=App, O=Convert, L=Samsun, ST=TR, C=TR"], check=True, capture_output=True)
 
         # Build & Sign
         safe_name = re.sub(r'[^a-zA-Z0-9_]', '', app_name.replace(" ", "_"))
@@ -225,30 +214,37 @@ def build_apk():
         align_res = subprocess.run(["zipalign", "-p", "-f", "-v", "4", apk_unsigned, apk_aligned], capture_output=True, text=True)
         if align_res.returncode != 0: raise Exception(f"ZIPALIGN ERROR:\n{align_res.stderr}")
 
-        sign_res = subprocess.run([
-            "apksigner", "sign", "--ks", keystore_path, "--ks-pass", "pass:123456", 
-            "--v1-signing-enabled", "true", "--v2-signing-enabled", "true", 
-            "--v3-signing-enabled", "true", "--out", apk_signed, apk_aligned
-        ], capture_output=True, text=True)
+        sign_res = subprocess.run(["apksigner", "sign", "--ks", keystore_path, "--ks-pass", "pass:123456", "--v1-signing-enabled", "true", "--v2-signing-enabled", "true", "--v3-signing-enabled", "true", "--out", apk_signed, apk_aligned], capture_output=True, text=True)
         if sign_res.returncode != 0: raise Exception(f"SIGNING ERROR:\n{sign_res.stderr}")
 
         if os.path.exists(temp_folder): shutil.rmtree(temp_folder)
         if os.path.exists(apk_unsigned): os.remove(apk_unsigned)
         if os.path.exists(apk_aligned): os.remove(apk_aligned)
         
-        return f"""
-        <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
-            <h1 style="color:green; font-size:60px;">🚀</h1>
-            <h2>JSON CONFIG INJECTED</h2>
-            <p>ID: {new_pkg}</p>
-            <p style="color:blue">Target URL: <b>{target_url}</b></p>
-            <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; margin-top:20px;">
-                Download Final APK
-            </a>
-        </div>
-        """
+        # YENİ NESİL ÇIKTI (JSON FORMATINDA)
+        return jsonify({
+            "status": "success",
+            "download_url": f"/download/{safe_name}.apk"
+        })
+
     except Exception as e:
-        return f"<div style='padding:20px; background:#fdd; color:red;'><pre>{str(e)}</pre></div>"
+        # HATA ÇIKTISI (JSON FORMATINDA)
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+# YENİ: İLETİŞİM FORMU ROTASI
+@app.route('/contact', methods=['POST'])
+def contact():
+    name = request.form.get('name')
+    email = request.form.get('email')
+    message = request.form.get('message')
+    
+    # Şimdilik konsola yazdırıyoruz. İlerde buraya Gmail SMTP ile sana mail atacak kod eklenecek.
+    print(f"--- YENİ İLETİŞİM MESAJI ---\nİsim: {name}\nMail: {email}\nMesaj: {message}\n---------------------------")
+    
+    return jsonify({"status": "success"})
 
 @app.route('/download/<filename>')
 def download(filename):
