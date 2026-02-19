@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import uuid
 import random
+import json
 from flask import Flask, render_template, request, send_file
 
 app = Flask(__name__)
@@ -26,7 +27,7 @@ def home():
     return render_template('index.html')
 
 # ══════════════════════════════════════════════════════════════
-#  LOGIC: GHOST MODE + PROVIDER KILLER + AGGRESSIVE URL INJECTOR
+#  LOGIC: GHOST MODE + PROVIDER KILLER + JSON INJECTOR
 # ══════════════════════════════════════════════════════════════
 
 def step1_reset_files(project_dir):
@@ -36,7 +37,6 @@ def step1_reset_files(project_dir):
 def step2_manifest_surgical_fix(project_dir, old_pkg, new_pkg):
     manifest_path = os.path.join(project_dir, 'AndroidManifest.xml')
     authority_map = {}
-    
     if not os.path.exists(manifest_path): return {}
 
     with open(manifest_path, 'r', encoding='utf-8') as f:
@@ -51,7 +51,7 @@ def step2_manifest_surgical_fix(project_dir, old_pkg, new_pkg):
         content = content.replace('<application', '<application android:debuggable="true"')
     content = content.replace(f'package="{old_pkg}"', f'package="{new_pkg}"')
 
-    # Activity Yolları (Ghost Mode)
+    # Activity Yolları
     def fix_activity_path(match):
         attr, val = match.group(1), match.group(2)
         if val.startswith('.'): return f'{attr}="{old_pkg}{val}"'
@@ -86,39 +86,31 @@ def step3_sync_smali_code(project_dir, old_pkg, new_pkg, authority_map, target_u
     old_pkg_str = f'"{old_pkg}"'
     new_pkg_str = f'"{new_pkg}"'
 
-    # URL kontrolü: Başında http yoksa ekle
     if target_url and not target_url.startswith('http'):
         target_url = 'https://' + target_url
 
     for root, dirs, files in os.walk(project_dir):
         if 'build' in dirs: dirs.remove('build')
         for fname in files:
-            if fname.endswith(('.smali', '.xml', '.txt', '.java')):
+            # Artık .json dosyalarını da tarıyoruz
+            if fname.endswith(('.smali', '.xml', '.txt', '.java', '.json')):
                 fpath = os.path.join(root, fname)
                 try:
                     with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
                         text = f.read()
                     original = text
                     
-                    # A. Paket ve Authority Sync
                     if old_r_path in text: text = text.replace(old_r_path, new_r_path)
                     if old_pkg_str in text: text = text.replace(old_pkg_str, new_pkg_str)
                     for old_auth, new_auth in authority_map.items():
                         if old_auth in text: text = text.replace(old_auth, new_auth)
 
-                    # B. AGRESİF URL INJECTOR
                     if target_url and len(target_url) > 5:
-                        # Olası tüm Google varyasyonlarını acımasızca ez
                         text = text.replace("https://www.google.com/", target_url)
                         text = text.replace("https://www.google.com", target_url)
                         text = text.replace("https://google.com/", target_url)
                         text = text.replace("https://google.com", target_url)
-                        text = text.replace("http://www.google.com/", target_url)
-                        text = text.replace("http://www.google.com", target_url)
-                        text = text.replace("http://google.com/", target_url)
-                        text = text.replace("http://google.com", target_url)
                         
-                        # strings.xml içinde Google içeren herhangi bir değişken varsa onu da ez
                         if "google.com" in text and fname == "strings.xml":
                             text = re.sub(r'<string name="([^"]+)">[^<]*google\.com[^<]*</string>', rf'<string name="\1">{target_url}</string>', text)
 
@@ -137,6 +129,26 @@ def step4_provider_paths_cleanup(project_dir, old_pkg, new_pkg):
                     txt = txt.replace(old_pkg, new_pkg)
                     with open(fp, 'w', encoding='utf-8') as file: file.write(txt)
 
+def step5_json_config_injector(project_dir, target_url, app_name):
+    """Bulduğun o sinsi app_config.json dosyasını parçalayıp senin bilgilerinle doldurur."""
+    config_path = os.path.join(project_dir, 'assets', 'app_config.json')
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # URL ve App Name'i zorla değiştir
+            if target_url:
+                if not target_url.startswith('http'): target_url = 'https://' + target_url
+                data['site_url'] = target_url
+            if app_name:
+                data['app_name'] = app_name
+                
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+        except Exception:
+            pass
+
 # ══════════════════════════════════════════════════════════════
 #  BUILD ROUTE
 # ══════════════════════════════════════════════════════════════
@@ -147,11 +159,8 @@ def build_apk():
     try:
         app_name = request.form.get('app_name')
         app_type = request.form.get('app_type')
-        
-        # HTML formundan URL'i alıyoruz (Çoklu olasılık kontrolü)
         target_url = request.form.get('url') or request.form.get('app_url') or request.form.get('website')
-        if not target_url:
-            target_url = "https://google.com" # Fallback (Hata vermemesi için)
+        if not target_url: target_url = "https://google.com"
 
         logo_file = request.files.get('logo')
         
@@ -170,6 +179,9 @@ def build_apk():
         auth_map = step2_manifest_surgical_fix(temp_folder, OLD_PACKAGE, new_pkg)
         step3_sync_smali_code(temp_folder, OLD_PACKAGE, new_pkg, auth_map, target_url)
         step4_provider_paths_cleanup(temp_folder, OLD_PACKAGE, new_pkg)
+        
+        # BULDUĞUN JSON DOSYASINI İNFAZ EDEN KOMUT 👇
+        step5_json_config_injector(temp_folder, target_url, app_name)
 
         # Assets
         res_path = os.path.join(temp_folder, 'res')
@@ -226,12 +238,12 @@ def build_apk():
         
         return f"""
         <div style="text-align:center; padding:100px; font-family:sans-serif; background:#fff;">
-            <h1 style="color:green; font-size:60px;">🎯</h1>
-            <h2>TARGET INJECTED</h2>
+            <h1 style="color:green; font-size:60px;">🚀</h1>
+            <h2>JSON CONFIG INJECTED</h2>
             <p>ID: {new_pkg}</p>
-            <p style="color:blue">Injected URL: <b>{target_url}</b></p>
+            <p style="color:blue">Target URL: <b>{target_url}</b></p>
             <a href="/download/{safe_name}.apk" style="display:inline-block; background:#000; color:#fff; padding:15px 35px; text-decoration:none; border-radius:10px; margin-top:20px;">
-                Download APK
+                Download Final APK
             </a>
         </div>
         """
