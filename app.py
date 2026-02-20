@@ -25,10 +25,12 @@ if not os.path.exists(OUTPUT_DIR):
 @app.route('/')
 def home():
     return render_template('index.html')
+
 @app.route('/favicon.png')
 def favicon():
     return send_file(os.path.join(BASE_DIR, 'favicon.png'), mimetype='image/png')
- @app.route('/sitemap.xml')
+
+@app.route('/sitemap.xml')
 def sitemap():
     return send_file(os.path.join(BASE_DIR, 'sitemap.xml'), mimetype='application/xml')
 
