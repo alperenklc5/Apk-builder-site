@@ -28,6 +28,13 @@ def home():
 @app.route('/favicon.png')
 def favicon():
     return send_file(os.path.join(BASE_DIR, 'favicon.png'), mimetype='image/png')
+ @app.route('/sitemap.xml')
+def sitemap():
+    return send_file(os.path.join(BASE_DIR, 'sitemap.xml'), mimetype='application/xml')
+
+@app.route('/robots.txt')
+def robots():
+    return send_file(os.path.join(BASE_DIR, 'robots.txt'), mimetype='text/plain')
 
 # ══════════════════════════════════════════════════════════════
 #  LOGIC: GHOST MODE + PROVIDER KILLER + JSON INJECTOR
