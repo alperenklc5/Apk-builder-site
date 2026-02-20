@@ -5,8 +5,11 @@ import subprocess
 import uuid
 import random
 import json
+import smtplib
 from flask import Flask, render_template, request, send_file
 from flask import Flask, render_template, request, send_file, jsonify
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 app = Flask(__name__)
 
 # ══════════════════════════════════════════════════════════════
@@ -37,6 +40,42 @@ def sitemap():
 @app.route('/robots.txt')
 def robots():
     return send_file(os.path.join(BASE_DIR, 'robots.txt'), mimetype='text/plain')
+@app.route('/contact', methods=['POST'])
+def contact():
+    name = request.form.get('name')
+    email = request.form.get('email')
+    message = request.form.get('message')
+
+    # 👇 YENİ PROFESYONEL MAİL BİLGİLERİMİZ
+    GMAIL_USER = "converttoapk@gmail.com" 
+    GMAIL_APP_PASSWORD = "nfastlctlyphadpr" # Boşlukları silerek bitişik yaz!
+
+    try:
+        # Mailin paketlenmesi
+        msg = MIMEMultipart()
+        msg['From'] = GMAIL_USER
+        
+        # 💡 İPUCU: İstersen buraya "kilicalperen80@gmail.com" yazabilirsin.
+        # Böylece mail "converttoapk" adresinden çıkar, senin kişisel hesabına gelir.
+        # Veya "GMAIL_USER" olarak bırakırsan direkt yeni hesabın kutusuna düşer.
+        msg['To'] = GMAIL_USER 
+        
+        msg['Subject'] = f"ConvertToAPK'dan Yeni Mesaj: {name}"
+
+        body = f"Gönderen: {name}\nE-posta: {email}\n\nMesaj:\n{message}"
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Mailin yola çıkması
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        print(f"SMTP Hatası: {e}")
+        return jsonify({'status': 'error', 'message': 'Mesaj gönderilemedi, sunucu hatası.'})
 
 # ══════════════════════════════════════════════════════════════
 #  LOGIC: GHOST MODE + PROVIDER KILLER + JSON INJECTOR
