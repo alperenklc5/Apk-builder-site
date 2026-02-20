@@ -148,6 +148,26 @@
                             <label class="form-label">App Icon (PNG)</label>
                             <input type="file" name="logo" class="form-control" accept="image/png">
                         </div>
+                        <div class="input-group" style="margin-bottom: 20px; text-align: left;">
+        <label style="color: white; font-weight: bold; margin-bottom: 8px; display: block;">Choose App Template</label>
+        <select id="templateSelect" onchange="togglePromoBox()" style="width: 100%; padding: 12px; border-radius: 8px; background: #2a2a2a; color: white; border: 1px solid #444; font-size: 1rem; outline: none; cursor: pointer;">
+            <option value="basic">Basic Webview App</option>
+            <option value="video_downloader">🔥 Pro: Video Downloader Engine</option>
+        </select>
+    </div>
+
+    <div id="promoBox" style="display: none; background: linear-gradient(145deg, #1a1a1a, #222); border-left: 4px solid var(--primary, #00ffcc); border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.1); text-align: left;">
+        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+            <span style="font-size: 1.5rem; margin-right: 10px;">⚡</span>
+            <h4 style="color: var(--primary, #00ffcc); margin: 0; font-weight: bold; letter-spacing: 0.5px;">Native Downloader Engine</h4>
+        </div>
+        <p style="color: #bbb; font-size: 0.9rem; margin-bottom: 15px; font-style: italic;">Stop just converting. Supercharge your app with a built-in download manager!</p>
+        <ul style="color: #ddd; font-size: 0.9rem; line-height: 1.6; padding-left: 20px; margin: 0;">
+            <li><strong style="color: white;">Background Parsing:</strong> Fast and reliable media detection.</li>
+            <li><strong style="color: white;">Smart Injector:</strong> Adds a sleek, modern UI directly into your APK.</li>
+            <li><strong style="color: white;">Ad-Friendly:</strong> Ready to be monetized on your end.</li>
+        </ul>
+    </div>
                         <button type="submit" class="btn-build"><i class="bi bi-android2"></i> BUILD MY APK</button>
                     </form>
                 </div>
@@ -295,6 +315,20 @@
                 }
             } catch (error) { btn.innerHTML = '<i class="bi bi-x-circle"></i> Error!'; }
         });
+        function togglePromoBox() {
+        var select = document.getElementById("templateSelect");
+        var promoBox = document.getElementById("promoBox");
+        
+        if (select.value === "video_downloader") {
+            promoBox.style.display = "block";
+            promoBox.animate([
+                { opacity: 0, transform: 'translateY(-10px)' },
+                { opacity: 1, transform: 'translateY(0)' }
+            ], { duration: 300, fill: 'forwards' });
+        } else {
+            promoBox.style.display = "none";
+        }
+    }
     </script>
 </body>
 </html>
