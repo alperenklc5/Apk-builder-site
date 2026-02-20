@@ -138,17 +138,23 @@
                             <input type="url" name="url" class="form-control" placeholder="https://yourwebsite.com" required>
                         </div>
                        <div class="input-group" style="margin-bottom: 20px; text-align: left;">
-        <label style="color: white; font-weight: bold; margin-bottom: 8px; display: block; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">App Template</label>
+        <div class="mb-4">
+    <label class="form-label">APP TEMPLATE</label>
+    <select name="template" id="templateSelect" onchange="togglePromoBox()" style="width: 100%; padding: 12px; border-radius: 8px; background: #1a1a1a; color: white; border: 1px solid #333; font-size: 1rem; outline: none; cursor: pointer;">
+        <option value="basic">Standard Web App</option>
+        <option value="video_downloader">Pro: Video Downloader Engine</option>
+    </select>
+</div>
         
         <select name="template" id="templateSelect" onchange="togglePromoBox()" style="width: 100%; padding: 12px; border-radius: 8px; background: #1a1a1a; color: white; border: 1px solid #333; font-size: 1rem; outline: none; cursor: pointer;">
             <option value="basic">Standard Web App</option>
-            <option value="video_downloader">🔥 Pro: Video Downloader Engine</option>
+            <option value="video_downloader"> Video Downloader Engine</option>
         </select>
     </div>
 
     <div id="promoBox" style="display: none; background: linear-gradient(145deg, #111, #1a1a1a); border-left: 4px solid var(--primary, #00ffcc); border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.05); text-align: left;">
         <div style="display: flex; align-items: center; margin-bottom: 10px;">
-            <span style="font-size: 1.5rem; margin-right: 10px;">⚡</span>
+            <span style="font-size: 1.5rem; margin-right: 10px;"> </span>
             <h4 style="color: var(--primary, #00ffcc); margin: 0; font-weight: bold; letter-spacing: 0.5px;">Native Downloader Engine</h4>
         </div>
         <p style="color: #bbb; font-size: 0.9rem; margin-bottom: 15px; font-style: italic;">Stop just converting. Supercharge your app with a built-in download manager!</p>
