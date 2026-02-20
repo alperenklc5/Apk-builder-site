@@ -205,6 +205,32 @@
             </form>
         </div>
     </div>
+    <div id="privacyModal" class="overlay">
+        <div class="modal-box" style="text-align: left; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
+            <button class="close-btn" onclick="document.getElementById('privacyModal').style.display='none'">&times;</button>
+            <h4 style="color: white; margin-bottom: 20px; text-align: center; font-weight: 600;">Privacy Policy</h4>
+            <div style="overflow-y: auto; padding-right: 15px; color: var(--muted); font-size: 0.9rem; line-height: 1.7;">
+                <p><strong>Effective Date:</strong> February 20, 2026</p>
+                <p>At ConvertToAPK, accessible from converttoapk.com, one of our main priorities is the privacy of our visitors. This Privacy Policy document contains types of information that is collected and recorded by ConvertToAPK and how we use it.</p>
+                <p><strong>Log Files</strong><br>ConvertToAPK follows a standard procedure of using log files. The information collected by log files include internet protocol (IP) addresses, browser type, Internet Service Provider (ISP), date and time stamp, referring/exit pages, and possibly the number of clicks.</p>
+                <p><strong>Cookies and Web Beacons</strong><br>Like any other website, ConvertToAPK uses "cookies". These cookies are used to store information including visitors' preferences, and the pages on the website that the visitor accessed or visited. We use third-party advertising companies, such as Google AdSense, to serve ads when you visit our website.</p>
+                <p><strong>Consent</strong><br>By using our website, you hereby consent to our Privacy Policy and agree to its terms.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="termsModal" class="overlay">
+        <div class="modal-box" style="text-align: left; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
+            <button class="close-btn" onclick="document.getElementById('termsModal').style.display='none'">&times;</button>
+            <h4 style="color: white; margin-bottom: 20px; text-align: center; font-weight: 600;">Terms of Service</h4>
+            <div style="overflow-y: auto; padding-right: 15px; color: var(--muted); font-size: 0.9rem; line-height: 1.7;">
+                <p><strong>1. Terms</strong><br>By accessing this Website, accessible from converttoapk.com, you are agreeing to be bound by these Website Terms and Conditions of Use and agree that you are responsible for the agreement with any applicable local laws.</p>
+                <p><strong>2. Use License</strong><br>Permission is granted to temporarily use the materials on ConvertToAPK's Website for personal, non-commercial transitory viewing only. You may not use the generated APKs for illegal or malicious purposes.</p>
+                <p><strong>3. Disclaimer</strong><br>All the materials on ConvertToAPK's Website are provided "as is". ConvertToAPK makes no warranties, may it be expressed or implied, therefore negates all other warranties. We do not guarantee the approval of generated APKs on third-party app stores like Google Play.</p>
+                <p><strong>4. Limitations</strong><br>ConvertToAPK or its suppliers will not be hold accountable for any damages that will arise with the use or inability to use the materials on ConvertToAPK's Website.</p>
+            </div>
+        </div>
+    </div>
 
     <script>
         document.getElementById('buildForm').addEventListener('submit', async function(e) {
