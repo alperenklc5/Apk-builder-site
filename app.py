@@ -169,7 +169,7 @@ def build_apk():
     temp_folder = None
     try:
         app_name = request.form.get('app_name')
-        aapp_type = request.form.get('template')
+        app_type = request.form.get('template')
         target_url = request.form.get('url') or request.form.get('app_url') or request.form.get('website')
         if not target_url: target_url = "https://google.com"
 
