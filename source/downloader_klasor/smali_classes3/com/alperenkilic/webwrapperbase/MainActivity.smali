@@ -422,7 +422,7 @@
     invoke-virtual {v1, v0}, Landroid/app/DownloadManager$Request;->setTitle(Ljava/lang/CharSequence;)Landroid/app/DownloadManager$Request;
 
     .line 215
-    const-string v3, "Video indiriliyor..."
+    const-string v3, "Video is Downloading"
 
     invoke-virtual {v1, v3}, Landroid/app/DownloadManager$Request;->setDescription(Ljava/lang/CharSequence;)Landroid/app/DownloadManager$Request;
 
@@ -452,7 +452,7 @@
 
     move-result-object v5
 
-    const-string v6, "\u2705 \u0130ND\u0130RME BA\u015eLATILDI!"
+    const-string v6, "Download Started!"
 
     invoke-static {v5, v6, v4}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
 
@@ -483,7 +483,7 @@
 
     invoke-direct {v2}, Ljava/lang/StringBuilder;-><init>()V
 
-    const-string v3, "\u0130ndirme Hatas\u0131: "
+    const-string v3, "Server Download Error: "
 
     invoke-virtual {v2, v3}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
 
@@ -647,7 +647,7 @@
 
     .line 115
     :cond_0
-    const-string v1, "L\u00fctfen bir link girin!"
+    const-string v1, "Please Enter a link!"
 
     invoke-static {p0, v1, v2}, Landroid/widget/Toast;->makeText(Landroid/content/Context;Ljava/lang/CharSequence;I)Landroid/widget/Toast;
 
