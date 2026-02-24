@@ -150,7 +150,7 @@
     .param p1, "pageUrl"    # Ljava/lang/String;
 
     .line 144
-    const-string v0, "http://hk0ww8o0kwko0s84884gckg0.164.68.113.20.sslip.io/get-video"
+    const-string v0, "https://videodownload.converttoapk.com/get-video"
 
     .line 146
     .local v0, "apiUrl":Ljava/lang/String;
