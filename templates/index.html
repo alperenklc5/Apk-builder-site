@@ -18,27 +18,21 @@
     <meta property="og:description" content="Convert your website into a fully functional Android App in seconds. No coding required!">
     <meta property="og:image" content="https://converttoapk.com/favicon.png">
 
-    <meta property="twitter:card" content="summary">
-    <meta property="twitter:url" content="https://converttoapk.com/">
-    <meta property="twitter:title" content="ConvertToAPK - Free Website to App Converter">
-    <meta property="twitter:description" content="Convert your website into a fully functional Android App in seconds. No coding required!">
-    <meta property="twitter:image" content="https://converttoapk.com/favicon.png">
-
     <link rel="icon" type="image/png" href="/favicon.png?v=5">
     <link rel="apple-touch-icon" href="/favicon.png?v=5">
 
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9056746212634232"
-     crossorigin="anonymous"></script>
-    <!-- Google tag (gtag.js) -->
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/introjs.min.css">
+
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9056746212634232" crossorigin="anonymous"></script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-3KCQW0NDQ7"></script>
     <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-
     gtag('config', 'G-3KCQW0NDQ7');
     </script>
 
@@ -62,7 +56,6 @@
         .glow-blob-2 { width: 400px; height: 400px; background: var(--accent2); bottom: 0; left: -100px; animation: drift 16s ease-in-out infinite alternate-reverse; }
         @keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(40px, 30px) scale(1.1); } }
 
-        /* Navbar & Hero */
         .navbar-custom { background: rgba(10,10,11,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 16px 0; position: sticky; top: 0; z-index: 100; }
         .nav-brand { font-size: 1.15rem; font-weight: 700; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 6px; }
         .brand-to { color: var(--accent); }
@@ -72,14 +65,12 @@
         .hero-title { font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 800; letter-spacing: -2.5px; background: linear-gradient(135deg, #ffffff 30%, #8aadff 70%, #a78bfa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .hero-sub { color: var(--muted); max-width: 500px; margin: 16px auto; line-height: 1.65; }
 
-        /* Form Kartı */
         .converter-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; position: relative; z-index: 1; box-shadow: 0 30px 80px rgba(0,0,0,0.5); }
         .form-label { font-size: 0.72rem; font-family: var(--mono); text-transform: uppercase; color: var(--muted); margin-bottom: 8px; display: block; font-weight: 500; }
         .form-control, .form-select { background: rgba(255,255,255,0.03) !important; border: 1px solid var(--border) !important; color: var(--text) !important; border-radius: 10px !important; padding: 12px 16px !important; transition: all 0.2s ease; }
         .form-control:focus, .form-select:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(79,142,255,0.1) !important; outline: none; }
         .form-select option { background: #111114; color: var(--text); }
         
-        /* Dosya Seç Butonu */
         .form-control[type="file"] { padding: 8px 12px !important; cursor: pointer; }
         .form-control[type="file"]::-webkit-file-upload-button { background: rgba(79,142,255,0.1); border: 1px solid rgba(79,142,255,0.3); color: var(--accent); padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-family: var(--sans); font-weight: 600; cursor: pointer; margin-right: 16px; transition: all 0.2s ease; }
         .form-control[type="file"]::-webkit-file-upload-button:hover { background: var(--accent); color: #fff; }
@@ -87,13 +78,11 @@
         .btn-build { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--accent), #6b5eff); border: none; border-radius: 10px; color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; letter-spacing: 0.5px; }
         .btn-build:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(79,142,255,0.2); }
 
-        /* Footer */
         .footer { border-top: 1px solid var(--border); padding: 28px 0; text-align: center; position: relative; z-index: 1; margin-top: 50px; }
         .footer-links button { background: none; border: none; color: var(--muted); font-size: 0.85rem; cursor: pointer; transition: color 0.2s; }
         .footer-links button:hover { color: var(--text); text-decoration: underline; }
         .footer-copy { font-size: 0.75rem; color: #3a3a4a; margin-top: 12px; font-family: var(--mono); }
 
-        /* Modal (Popup) */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 1000; display: none; align-items: center; justify-content: center; }
         .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; width: 90%; max-width: 500px; text-align: center; position: relative; box-shadow: 0 20px 60px rgba(0,0,0,0.6); }
         .modal-icon { font-size: 4rem; margin-bottom: 15px; display: inline-block; }
@@ -101,14 +90,35 @@
         .icon-error { color: #ff4d4d; }
         .spinner { width: 50px; height: 50px; border: 3px solid rgba(79,142,255,0.1); border-top: 3px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .ad-space { background: #0a0a0b; border: 1px dashed #2a2a35; border-radius: 10px; padding: 30px; margin: 20px 0; color: #555; font-family: var(--mono); font-size: 0.8rem; }
         .close-btn { position: absolute; top: 15px; right: 20px; background: none; border: none; color: var(--muted); font-size: 1.5rem; cursor: pointer; transition: color 0.2s; }
         .close-btn:hover { color: var(--text); }
+
+        /* --- KILAVUZ (TOUR) VE YARDIM BUTONU CSS --- */
+        .floating-help { position: fixed; bottom: 30px; right: 30px; width: 55px; height: 55px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #6b5eff); color: white; border: none; box-shadow: 0 4px 15px rgba(79,142,255,0.4); font-size: 1.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 999; transition: transform 0.2s; animation: pulse 2s infinite; }
+        .floating-help:hover { transform: scale(1.1); }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(79,142,255, 0.6); } 70% { box-shadow: 0 0 0 12px rgba(79,142,255, 0); } 100% { box-shadow: 0 0 0 0 rgba(79,142,255, 0); } }
+        
+        /* Intro.js Karanlık Tema Uyarlaması */
+        .introjs-tooltip { background-color: var(--surface) !important; color: var(--text) !important; border: 1px solid var(--border) !important; border-radius: 12px !important; box-shadow: 0 10px 30px rgba(0,0,0,0.8) !important; font-family: var(--sans) !important; }
+        .introjs-tooltiptext { font-size: 0.95rem; line-height: 1.5; color: #bbb; }
+        .introjs-tooltip-title { font-weight: 700; color: #fff; font-size: 1.1rem; }
+        .introjs-arrow.top { border-bottom-color: var(--surface) !important; }
+        .introjs-arrow.bottom { border-top-color: var(--surface) !important; }
+        .introjs-arrow.left { border-right-color: var(--surface) !important; }
+        .introjs-arrow.right { border-left-color: var(--surface) !important; }
+        .introjs-button { background-color: rgba(79,142,255,0.1) !important; color: var(--accent) !important; border: 1px solid rgba(79,142,255,0.3) !important; text-shadow: none !important; border-radius: 6px !important; transition: all 0.2s; }
+        .introjs-button:hover { background-color: var(--accent) !important; color: #fff !important; }
+        .introjs-skipbutton { color: var(--muted) !important; }
+        .introjs-helperLayer { background: transparent !important; box-shadow: rgba(0, 0, 0, 0.8) 0px 0px 0px 5000px !important; border: 2px solid var(--accent) !important; border-radius: 12px !important; }
     </style>
 </head>
 <body>
     <div class="glow-blob glow-blob-1"></div>
     <div class="glow-blob glow-blob-2"></div>
+
+    <button class="floating-help" onclick="startGuideTour()" title="Nasıl Kullanılır?">
+        <i class="bi bi-question"></i>
+    </button>
 
     <nav class="navbar-custom">
         <div class="container d-flex align-items-center justify-content-between">
@@ -133,39 +143,39 @@
                             <label class="form-label">Application Name</label>
                             <input type="text" name="app_name" class="form-control" placeholder="e.g. My App" required>
                         </div>
-                        <div class="mb-4">
+                        
+                        <div class="mb-4" id="step-url">
                             <label class="form-label">Website URL</label>
                             <input type="url" name="url" class="form-control" placeholder="https://yourwebsite.com" required>
                         </div>
-                      <div class="mb-4">
-    <label class="form-label">APP TEMPLATE</label>
-    <select name="template" id="templateSelect" onchange="togglePromoBox()" class="form-control" style="cursor: pointer; background-color: #1a1a1a; color: white; border: 1px solid #333;">
-        <option value="standart_klasor">Standard Web App</option>
-        <option value="downloader">Pro: Video Downloader Engine</option>
-    </select>
-</div>
+                        
+                        <div class="mb-4" id="step-template">
+                            <label class="form-label">APP TEMPLATE</label>
+                            <select name="template" id="templateSelect" onchange="togglePromoBox()" class="form-control" style="cursor: pointer; background-color: #1a1a1a; color: white; border: 1px solid #333;">
+                                <option value="standart_klasor">Standard Web App</option>
+                                <option value="video_downloader">Pro: Video Downloader Engine</option> </select>
+                        </div>
       
-    <div id="promoBox" style="display: none; background: linear-gradient(145deg, #111, #1a1a1a); border-left: 4px solid var(--primary, #00ffcc); border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.05); text-align: left;">
-        <div style="display: flex; align-items: center; margin-bottom: 10px;">
-            <span style="font-size: 1.5rem; margin-right: 10px;"> </span>
-            <h4 style="color: var(--primary, #00ffcc); margin: 0; font-weight: bold; letter-spacing: 0.5px;">Native Downloader Engine</h4>
-        </div>
-        <p style="color: #bbb; font-size: 0.9rem; margin-bottom: 15px; font-style: italic;">Stop just converting. Supercharge your app with a built-in download manager!</p>
-        
-        <div id="gifPlaceholder" style="width: 100%; height: 4px; background: var(--primary, #00ffcc); margin-bottom: 15px; border-radius: 2px; opacity: 0.3;"></div>
-
-        <ul style="color: #ddd; font-size: 0.9rem; line-height: 1.6; padding-left: 20px; margin: 0;">
-            <li><strong style="color: white;">Background Parsing:</strong> Fast media detection.</li>
-            <li><strong style="color: white;">Smart Injector:</strong> Sleek UI directly in your APK.</li>
-            <li><strong style="color: white;">Ad-Friendly:</strong> Ready to be monetized.</li>
-        </ul>
-    </div>
-                        <div class="mb-4">
+                        <div id="promoBox" style="display: none; background: linear-gradient(145deg, #111, #1a1a1a); border-left: 4px solid var(--primary, #00ffcc); border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.05); text-align: left;">
+                            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                                <span style="font-size: 1.5rem; margin-right: 10px;"> </span>
+                                <h4 style="color: var(--primary, #00ffcc); margin: 0; font-weight: bold; letter-spacing: 0.5px;">Native Downloader Engine</h4>
+                            </div>
+                            <p style="color: #bbb; font-size: 0.9rem; margin-bottom: 15px; font-style: italic;">Stop just converting. Supercharge your app with a built-in download manager!</p>
+                            <div id="gifPlaceholder" style="width: 100%; height: 4px; background: var(--primary, #00ffcc); margin-bottom: 15px; border-radius: 2px; opacity: 0.3;"></div>
+                            <ul style="color: #ddd; font-size: 0.9rem; line-height: 1.6; padding-left: 20px; margin: 0;">
+                                <li><strong style="color: white;">Background Parsing:</strong> Fast media detection.</li>
+                                <li><strong style="color: white;">Smart Injector:</strong> Sleek UI directly in your APK.</li>
+                                <li><strong style="color: white;">Ad-Friendly:</strong> Ready to be monetized.</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="mb-4" id="step-icon">
                             <label class="form-label">App Icon (PNG)</label>
                             <input type="file" name="logo" class="form-control" accept="image/png">
                         </div>
-                       
-                        <button type="submit" class="btn-build"><i class="bi bi-android2"></i> BUILD MY APK</button>
+                        
+                        <button type="submit" id="step-build" class="btn-build"><i class="bi bi-android2"></i> BUILD MY APK</button>
                     </form>
                 </div>
             </div>
@@ -191,7 +201,7 @@
     
     <div class="row g-3">
         <div class="col-md-6">
-            <a href="SENIN_NORDVPN_VEYA_SURFSHARK_AFFILIATE_LINKIN_BURAYA" target="_blank" class="text-decoration-none">
+            <a href="#" target="_blank" class="text-decoration-none">
                 <div class="p-3 rounded-3" style="background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid #334155; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#3b82f6'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='#334155'; this.style.transform='translateY(0)';">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0 bg-primary bg-opacity-10 p-2 rounded">
@@ -207,7 +217,7 @@
         </div>
 
         <div class="col-md-6">
-            <a href="SENIN_HOSTINGER_VEYA_DIGITALOCEAN_AFFILIATE_LINKIN_BURAYA" target="_blank" class="text-decoration-none">
+            <a href="#" target="_blank" class="text-decoration-none">
                 <div class="p-3 rounded-3" style="background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid #334155; transition: all 0.3s ease;" onmouseover="this.style.borderColor='#10b981'; this.style.transform='translateY(-2px)';" onmouseout="this.style.borderColor='#334155'; this.style.transform='translateY(0)';">
                     <div class="d-flex align-items-center">
                         <div class="flex-shrink-0 bg-success bg-opacity-10 p-2 rounded">
@@ -230,15 +240,11 @@
             <div id="loadingState">
                 <div class="spinner"></div>
                 <h4 style="color: white; font-weight: 600;">Building Your APK...</h4>
-                <p style="color: var(--muted); font-size: 0.9rem; margin-top: 8px;">This usually takes about 30 seconds. Please wait.</p>
-              
             </div>
             <div id="successState" style="display: none;">
                 <i class="bi bi-check2-circle modal-icon icon-success"></i>
-                <h4 style="color: white; margin-bottom: 20px; font-weight: 600;">Build Complete!</h4>
-                <a id="downloadBtn" href="#" class="btn-build" style="display: inline-block; text-decoration: none;">
-                    <i class="bi bi-download"></i> DOWNLOAD APK
-                </a>
+                <h4 style="color: white; font-weight: 600;">Build Complete!</h4>
+                <a id="downloadBtn" href="#" class="btn-build" style="display: inline-block; text-decoration: none;">DOWNLOAD APK</a>
                 <br><br>
                 <button onclick="closeBuildModal()" style="background:none; border:none; color:var(--muted); text-decoration:underline; cursor:pointer;">Create another app</button>
             </div>
@@ -246,61 +252,15 @@
                 <button class="close-btn" onclick="closeBuildModal()">&times;</button>
                 <i class="bi bi-exclamation-circle modal-icon icon-error"></i>
                 <h4 style="color: #ff4d4d; font-weight: 600;">Build Failed</h4>
-                <p id="errorText" style="color: var(--muted); font-size: 0.85rem; word-wrap: break-word; margin: 15px 0;"></p>
-                <button onclick="closeBuildModal()" class="btn-build" style="background: #2a2a35;">Try Again</button>
+                <p id="errorText" style="color: var(--muted); font-size: 0.85rem; margin: 15px 0;"></p>
             </div>
         </div>
     </div>
 
-    <div id="contactModal" class="overlay">
-        <div class="modal-box" style="text-align: left;">
-            <button class="close-btn" onclick="document.getElementById('contactModal').style.display='none'">&times;</button>
-            <h4 style="color: white; margin-bottom: 24px; text-align: center; font-weight: 600;">Contact Us</h4>
-            <form id="contactForm">
-                <div class="mb-3">
-                    <label class="form-label">Name</label>
-                    <input type="text" name="name" class="form-control" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Email</label>
-                    <input type="email" name="email" class="form-control" required>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label">Message</label>
-                    <textarea name="message" class="form-control" rows="4" required style="resize: none;"></textarea>
-                </div>
-                <button type="submit" class="btn-build" id="contactBtn">Send Message</button>
-            </form>
-        </div>
-    </div>
-    <div id="privacyModal" class="overlay">
-        <div class="modal-box" style="text-align: left; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
-            <button class="close-btn" onclick="document.getElementById('privacyModal').style.display='none'">&times;</button>
-            <h4 style="color: white; margin-bottom: 20px; text-align: center; font-weight: 600;">Privacy Policy</h4>
-            <div style="overflow-y: auto; padding-right: 15px; color: var(--muted); font-size: 0.9rem; line-height: 1.7;">
-                <p><strong>Effective Date:</strong> February 20, 2026</p>
-                <p>At ConvertToAPK, accessible from converttoapk.com, one of our main priorities is the privacy of our visitors. This Privacy Policy document contains types of information that is collected and recorded by ConvertToAPK and how we use it.</p>
-                <p><strong>Log Files</strong><br>ConvertToAPK follows a standard procedure of using log files. The information collected by log files include internet protocol (IP) addresses, browser type, Internet Service Provider (ISP), date and time stamp, referring/exit pages, and possibly the number of clicks.</p>
-                <p><strong>Cookies and Web Beacons</strong><br>Like any other website, ConvertToAPK uses "cookies". These cookies are used to store information including visitors' preferences, and the pages on the website that the visitor accessed or visited. We use third-party advertising companies, such as Google AdSense, to serve ads when you visit our website.</p>
-                <p><strong>Consent</strong><br>By using our website, you hereby consent to our Privacy Policy and agree to its terms.</p>
-            </div>
-        </div>
-    </div>
-
-    <div id="termsModal" class="overlay">
-        <div class="modal-box" style="text-align: left; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
-            <button class="close-btn" onclick="document.getElementById('termsModal').style.display='none'">&times;</button>
-            <h4 style="color: white; margin-bottom: 20px; text-align: center; font-weight: 600;">Terms of Service</h4>
-            <div style="overflow-y: auto; padding-right: 15px; color: var(--muted); font-size: 0.9rem; line-height: 1.7;">
-                <p><strong>1. Terms</strong><br>By accessing this Website, accessible from converttoapk.com, you are agreeing to be bound by these Website Terms and Conditions of Use and agree that you are responsible for the agreement with any applicable local laws.</p>
-                <p><strong>2. Use License</strong><br>Permission is granted to temporarily use the materials on ConvertToAPK's Website for personal, non-commercial transitory viewing only. You may not use the generated APKs for illegal or malicious purposes.</p>
-                <p><strong>3. Disclaimer</strong><br>All the materials on ConvertToAPK's Website are provided "as is". ConvertToAPK makes no warranties, may it be expressed or implied, therefore negates all other warranties. We do not guarantee the approval of generated APKs on third-party app stores like Google Play.</p>
-                <p><strong>4. Limitations</strong><br>ConvertToAPK or its suppliers will not be hold accountable for any damages that will arise with the use or inability to use the materials on ConvertToAPK's Website.</p>
-            </div>
-        </div>
-    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
 
     <script>
+        // --- Form Submit JS (Senin Kodun) ---
         document.getElementById('buildForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             document.getElementById('buildModal').style.display = 'flex';
@@ -330,42 +290,73 @@
 
         function closeBuildModal() { document.getElementById('buildModal').style.display = 'none'; }
 
-        document.getElementById('contactForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('contactBtn');
-            btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Sending...';
-            
-            const formData = new FormData(this);
-            try {
-                const response = await fetch('/contact', { method: 'POST', body: formData });
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    btn.innerHTML = '<i class="bi bi-check2"></i> Message Sent!';
-                    btn.style.background = "var(--success)";
-                    setTimeout(() => {
-                        document.getElementById('contactModal').style.display = 'none';
-                        btn.innerText = "Send Message";
-                        btn.style.background = "";
-                        this.reset();
-                    }, 2000);
-                }
-            } catch (error) { btn.innerHTML = '<i class="bi bi-x-circle"></i> Error!'; }
-        });
+        // --- Promo Box Toggle (Düzeltilmiş Hali) ---
         function togglePromoBox() {
-        var select = document.getElementById("templateSelect");
-        var promoBox = document.getElementById("promoBox");
-        
-        if (select.value === "video_downloader") {
-            promoBox.style.display = "block";
-            promoBox.animate([
-                { opacity: 0, transform: 'translateY(-10px)' },
-                { opacity: 1, transform: 'translateY(0)' }
-            ], { duration: 300, fill: 'forwards' });
-        } else {
-            promoBox.style.display = "none";
+            var select = document.getElementById("templateSelect");
+            var promoBox = document.getElementById("promoBox");
+            
+            if (select.value === "video_downloader") {
+                promoBox.style.display = "block";
+                promoBox.animate([
+                    { opacity: 0, transform: 'translateY(-10px)' },
+                    { opacity: 1, transform: 'translateY(0)' }
+                ], { duration: 300, fill: 'forwards' });
+            } else {
+                promoBox.style.display = "none";
+            }
         }
-    }
+
+        // --- KILAVUZ (TOUR) FONKSİYONLARI ---
+        function startGuideTour() {
+            introJs().setOptions({
+                steps: [
+                    {
+                        title: 'Hoş Geldiniz! 🚀',
+                        intro: 'Web sitenizi Android uygulamasına dönüştürmek saniyeler sürer. Size hızlıca adımları göstereyim.'
+                    },
+                    {
+                        element: document.querySelector('#step-url'),
+                        title: '1. Web Sitenizin Adresi',
+                        intro: 'Uygulamaya çevirmek istediğiniz sitenin tam bağlantısını buraya yapıştırın.',
+                        position: 'right'
+                    },
+                    {
+                        element: document.querySelector('#step-template'),
+                        title: '2. Şablon Seçimi',
+                        intro: 'Siteniz standart bir görünümde mi olsun, yoksa içine efsanevi <b>Video İndirme</b> motorumuzu mu ekleyelim? Buradan seçebilirsiniz.',
+                        position: 'right'
+                    },
+                    {
+                        element: document.querySelector('#step-icon'),
+                        title: '3. Uygulama Logosu',
+                        intro: 'Kullanıcıların telefon ekranında göreceği şık ikonunuzu (PNG formatında) buradan yükleyin.',
+                        position: 'right'
+                    },
+                    {
+                        element: document.querySelector('#step-build'),
+                        title: '4. İşlem Tamam!',
+                        intro: 'Her şey hazırsa tek tıkla APK dosyanızı oluşturun ve anında indirin.',
+                        position: 'top'
+                    }
+                ],
+                showProgress: true,
+                showBullets: false,
+                nextLabel: 'İleri &rarr;',
+                prevLabel: '&larr; Geri',
+                doneLabel: 'Başla!',
+                skipLabel: 'Atla'
+            }).start();
+        }
+
+        // Kullanıcı siteye ilk girdiğinde turu otomatik başlat, bir daha gösterme
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('apkTourCompleted')) {
+                setTimeout(() => {
+                    startGuideTour();
+                    localStorage.setItem('apkTourCompleted', 'true');
+                }, 1500); // 1.5 saniye sonra başlasın, sayfa tamamen yüklensin
+            }
+        });
     </script>
 </body>
 </html>
