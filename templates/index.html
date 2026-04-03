@@ -98,15 +98,20 @@
         .floating-help:hover { transform: scale(1.1); }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(79,142,255, 0.6); } 70% { box-shadow: 0 0 0 12px rgba(79,142,255, 0); } 100% { box-shadow: 0 0 0 0 rgba(79,142,255, 0); } }
         
-        /* Intro.js Karanlık Tema Uyarlaması */
-        .introjs-tooltip { background-color: var(--surface) !important; color: var(--text) !important; border: 1px solid var(--border) !important; border-radius: 12px !important; box-shadow: 0 10px 30px rgba(0,0,0,0.8) !important; font-family: var(--sans) !important; }
-        .introjs-tooltiptext { font-size: 0.95rem; line-height: 1.5; color: #bbb; }
-        .introjs-tooltip-title { font-weight: 700; color: #fff; font-size: 1.1rem; }
+        /* --- KILAVUZ (TOUR) VE YARDIM BUTONU CSS --- */
+        .floating-help { position: fixed; bottom: 30px; right: 30px; width: 55px; height: 55px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #6b5eff); color: white; border: none; box-shadow: 0 4px 15px rgba(79,142,255,0.4); font-size: 1.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 999; transition: transform 0.2s; animation: pulse 2s infinite; }
+        .floating-help:hover { transform: scale(1.1); }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(79,142,255, 0.6); } 70% { box-shadow: 0 0 0 12px rgba(79,142,255, 0); } 100% { box-shadow: 0 0 0 0 rgba(79,142,255, 0); } }
+        
+        /* Intro.js Karanlık Tema Uyarlaması (Fontlar Büyütüldü) */
+        .introjs-tooltip { background-color: var(--surface) !important; color: var(--text) !important; border: 1px solid var(--border) !important; border-radius: 12px !important; box-shadow: 0 10px 30px rgba(0,0,0,0.8) !important; font-family: var(--sans) !important; width: 330px !important; max-width: 90vw !important;}
+        .introjs-tooltiptext { font-size: 1.05rem; line-height: 1.6; color: #bbb; }
+        .introjs-tooltip-title { font-weight: 700; color: #fff; font-size: 1.25rem; }
         .introjs-arrow.top { border-bottom-color: var(--surface) !important; }
         .introjs-arrow.bottom { border-top-color: var(--surface) !important; }
         .introjs-arrow.left { border-right-color: var(--surface) !important; }
         .introjs-arrow.right { border-left-color: var(--surface) !important; }
-        .introjs-button { background-color: rgba(79,142,255,0.1) !important; color: var(--accent) !important; border: 1px solid rgba(79,142,255,0.3) !important; text-shadow: none !important; border-radius: 6px !important; transition: all 0.2s; }
+        .introjs-button { background-color: rgba(79,142,255,0.1) !important; color: var(--accent) !important; border: 1px solid rgba(79,142,255,0.3) !important; text-shadow: none !important; border-radius: 6px !important; transition: all 0.2s; padding: 8px 12px !important; font-size: 0.95rem !important;}
         .introjs-button:hover { background-color: var(--accent) !important; color: #fff !important; }
         .introjs-skipbutton { color: var(--muted) !important; }
         .introjs-helperLayer { background: transparent !important; box-shadow: rgba(0, 0, 0, 0.8) 0px 0px 0px 5000px !important; border: 2px solid var(--accent) !important; border-radius: 12px !important; }
@@ -306,57 +311,47 @@
             }
         }
 
-        // --- KILAVUZ (TOUR) FONKSİYONLARI ---
+       // --- KILAVUZ (TOUR) FONKSİYONLARI ---
         function startGuideTour() {
             introJs().setOptions({
                 steps: [
                     {
-                        title: 'Hoş Geldiniz! 🚀',
-                        intro: 'Web sitenizi Android uygulamasına dönüştürmek saniyeler sürer. Size hızlıca adımları göstereyim.'
+                        title: 'Welcome! 🤖',
+                        intro: 'Converting your website into an Android app takes just seconds. Let me quickly show you the steps.'
                     },
                     {
                         element: document.querySelector('#step-url'),
-                        title: '1. Web Sitenizin Adresi',
-                        intro: 'Uygulamaya çevirmek istediğiniz sitenin tam bağlantısını buraya yapıştırın.',
+                        title: '1. Website URL',
+                        intro: 'Paste the full link of your website here.<br><br><span style="color: #ffcc00;"><b>⚠️ Note:</b></span> Make sure to include <b>https://</b> (e.g., <i>https://example.com</i>, not just <i>example.com</i>).',
                         position: 'right'
                     },
                     {
                         element: document.querySelector('#step-template'),
-                        title: '2. Şablon Seçimi',
-                        intro: 'Siteniz standart bir görünümde mi olsun, yoksa içine efsanevi <b>Video İndirme</b> motorumuzu mu ekleyelim? Buradan seçebilirsiniz.',
+                        title: '2. App Template',
+                        intro: 'Choose a standard web view or supercharge your app with our built-in <b>Video Downloader</b> engine.',
                         position: 'right'
                     },
                     {
                         element: document.querySelector('#step-icon'),
-                        title: '3. Uygulama Logosu',
-                        intro: 'Kullanıcıların telefon ekranında göreceği şık ikonunuzu (PNG formatında) buradan yükleyin.',
+                        title: '3. App Icon',
+                        intro: 'Upload the icon (PNG format) that users will see on their phone screens.',
                         position: 'right'
                     },
                     {
                         element: document.querySelector('#step-build'),
-                        title: '4. İşlem Tamam!',
-                        intro: 'Her şey hazırsa tek tıkla APK dosyanızı oluşturun ve anında indirin.',
+                        title: '4. Ready to Build!',
+                        intro: 'Once everything is set, click here to build your APK and download it instantly.',
                         position: 'top'
                     }
                 ],
                 showProgress: true,
                 showBullets: false,
-                nextLabel: 'İleri &rarr;',
-                prevLabel: '&larr; Geri',
-                doneLabel: 'Başla!',
-                skipLabel: 'Atla'
+                nextLabel: 'Next &rarr;',
+                prevLabel: '&larr; Back',
+                doneLabel: 'Let\'s Go!',
+                skipLabel: 'Skip'
             }).start();
         }
-
-        // Kullanıcı siteye ilk girdiğinde turu otomatik başlat, bir daha gösterme
-        window.addEventListener('DOMContentLoaded', () => {
-            if (!localStorage.getItem('apkTourCompleted')) {
-                setTimeout(() => {
-                    startGuideTour();
-                    localStorage.setItem('apkTourCompleted', 'true');
-                }, 1500); // 1.5 saniye sonra başlasın, sayfa tamamen yüklensin
-            }
-        });
     </script>
 </body>
 </html>
