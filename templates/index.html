@@ -56,6 +56,33 @@
         .glow-blob-2 { width: 400px; height: 400px; background: var(--accent2); bottom: 0; left: -100px; animation: drift 16s ease-in-out infinite alternate-reverse; }
         @keyframes drift { from { transform: translate(0, 0) scale(1); } to { transform: translate(40px, 30px) scale(1.1); } }
 
+        /* Cookie Banner */
+        .cookie-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: 20px;
+            z-index: 2000;
+            display: none;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+        }
+        .cookie-banner.show { display: block; animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .cookie-content { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+        .cookie-text { flex: 1; min-width: 300px; }
+        .cookie-text h4 { color: var(--text); font-size: 1.1rem; font-weight: 600; margin-bottom: 8px; }
+        .cookie-text p { color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+        .cookie-text a { color: var(--accent); text-decoration: underline; }
+        .cookie-buttons { display: flex; gap: 12px; }
+        .cookie-btn { padding: 10px 24px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; transition: all 0.2s; font-size: 0.9rem; }
+        .cookie-accept { background: linear-gradient(135deg, var(--accent), #6b5eff); color: white; }
+        .cookie-accept:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(79,142,255,0.3); }
+        .cookie-decline { background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid var(--border); }
+        .cookie-decline:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+
         /* Navbar & Hero */
         .navbar-custom { background: rgba(10,10,11,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); padding: 16px 0; position: sticky; top: 0; z-index: 100; }
         .nav-brand { font-size: 1.15rem; font-weight: 700; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 6px; }
@@ -80,6 +107,20 @@
 
         .btn-build { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--accent), #6b5eff); border: none; border-radius: 10px; color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; letter-spacing: 0.5px; }
         .btn-build:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(79,142,255,0.2); }
+
+        /* AD Container Styling */
+        .ad-container-loading {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            text-align: center;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
         /* Footer */
         .footer { border-top: 1px solid var(--border); padding: 28px 0; text-align: center; position: relative; z-index: 1; margin-top: 50px; }
@@ -115,11 +156,31 @@
         .introjs-button:hover { background-color: var(--accent) !important; color: #fff !important; }
         .introjs-skipbutton { color: var(--muted) !important; }
         .introjs-helperLayer { background: transparent !important; box-shadow: rgba(0, 0, 0, 0.8) 0px 0px 0px 5000px !important; border: 2px solid var(--accent) !important; border-radius: 12px !important; }
+
+        @media (max-width: 768px) {
+            .cookie-content { flex-direction: column; align-items: stretch; }
+            .cookie-buttons { width: 100%; justify-content: stretch; }
+            .cookie-btn { flex: 1; }
+        }
     </style>
 </head>
 <body>
     <div class="glow-blob glow-blob-1"></div>
     <div class="glow-blob glow-blob-2"></div>
+
+    <!-- COOKIE CONSENT BANNER -->
+    <div id="cookieBanner" class="cookie-banner">
+        <div class="cookie-content">
+            <div class="cookie-text">
+                <h4>🍪 Çerez Kullanımı</h4>
+                <p>Deneyiminizi geliştirmek ve reklamları kişiselleştirmek için çerezler kullanıyoruz. Devam ederek çerez kullanımını kabul etmiş olursunuz. <a href="#" onclick="document.getElementById('privacyModal').style.display='flex'; return false;">Gizlilik Politikası</a></p>
+            </div>
+            <div class="cookie-buttons">
+                <button class="cookie-btn cookie-accept" onclick="acceptCookies()">Kabul Et</button>
+                <button class="cookie-btn cookie-decline" onclick="declineCookies()">Reddet</button>
+            </div>
+        </div>
+    </div>
 
     <button class="floating-help" onclick="startGuideTour()" title="How to use?">
         <i class="bi bi-question"></i>
@@ -164,7 +225,7 @@
       
                         <div id="promoBox" style="display: none; background: linear-gradient(145deg, #111, #1a1a1a); border-left: 4px solid var(--primary, #00ffcc); border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0, 255, 204, 0.05); text-align: left;">
                             <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                                <span style="font-size: 1.5rem; margin-right: 10px;"> </span>
+                                <span style="font-size: 1.5rem; margin-right: 10px;">⚡</span>
                                 <h4 style="color: var(--primary, #00ffcc); margin: 0; font-weight: bold; letter-spacing: 0.5px;">Native Downloader Engine</h4>
                             </div>
                             <p style="color: #bbb; font-size: 0.9rem; margin-bottom: 15px; font-style: italic;">Stop just converting. Supercharge your app with a built-in download manager!</p>
@@ -251,6 +312,9 @@
                 <div class="spinner"></div>
                 <h4 style="color: white; font-weight: 600;">Building Your APK...</h4>
                 <p style="color: var(--muted); font-size: 0.9rem; margin-top: 8px;">This usually takes about 30 seconds. Please wait.</p>
+                
+                <!-- SOCIAL BAR REKLAMI (Loading Sırasında) -->
+                <div class="ad-container-loading" id="socialBarAd"></div>
             </div>
             <div id="successState" style="display: none;">
                 <i class="bi bi-check2-circle modal-icon icon-success"></i>
@@ -301,7 +365,7 @@
                 <p><strong>Effective Date:</strong> February 20, 2026</p>
                 <p>At ConvertToAPK, accessible from converttoapk.com, one of our main priorities is the privacy of our visitors. This Privacy Policy document contains types of information that is collected and recorded by ConvertToAPK and how we use it.</p>
                 <p><strong>Log Files</strong><br>ConvertToAPK follows a standard procedure of using log files. The information collected by log files include internet protocol (IP) addresses, browser type, Internet Service Provider (ISP), date and time stamp, referring/exit pages, and possibly the number of clicks.</p>
-                <p><strong>Cookies and Web Beacons</strong><br>Like any other website, ConvertToAPK uses "cookies". These cookies are used to store information including visitors' preferences, and the pages on the website that the visitor accessed or visited. We use third-party advertising companies, such as Google AdSense, to serve ads when you visit our website.</p>
+                <p><strong>Cookies and Web Beacons</strong><br>Like any other website, ConvertToAPK uses "cookies". These cookies are used to store information including visitors' preferences, and the pages on the website that the visitor accessed or visited. We use third-party advertising companies, such as Adsterra, to serve ads when you visit our website.</p>
                 <p><strong>Consent</strong><br>By using our website, you hereby consent to our Privacy Policy and agree to its terms.</p>
             </div>
         </div>
@@ -323,6 +387,44 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/intro.js/7.2.0/intro.min.js"></script>
 
     <script>
+        // --- COOKIE CONSENT FUNCTIONS ---
+        function acceptCookies() {
+            localStorage.setItem('cookieConsent', 'accepted');
+            document.getElementById('cookieBanner').classList.remove('show');
+            loadAds(); // Çerezler kabul edilince reklamları yükle
+        }
+
+        function declineCookies() {
+            localStorage.setItem('cookieConsent', 'declined');
+            document.getElementById('cookieBanner').classList.remove('show');
+        }
+
+        function checkCookieConsent() {
+            const consent = localStorage.getItem('cookieConsent');
+            if (!consent) {
+                setTimeout(() => {
+                    document.getElementById('cookieBanner').classList.add('show');
+                }, 1000);
+            } else if (consent === 'accepted') {
+                loadAds();
+            }
+        }
+
+        function loadAds() {
+            // POPUNDER SCRIPT
+            const popunderScript = document.createElement('script');
+            popunderScript.src = 'https://pl29158126.profitablecpmratenetwork.com/79/67/a9/7967a970d6c7a89871413f99f698f4f2.js';
+            document.body.appendChild(popunderScript);
+
+            // SOCIAL BAR SCRIPT (Loading modal içinde)
+            const socialBarScript = document.createElement('script');
+            socialBarScript.src = 'https://pl29158125.profitablecpmratenetwork.com/53/d5/50/53d550e3c997ba1751ec968602f40a74.js';
+            document.getElementById('socialBarAd').appendChild(socialBarScript);
+        }
+
+        // Sayfa yüklendiğinde cookie kontrolü yap
+        window.addEventListener('DOMContentLoaded', checkCookieConsent);
+
         // --- Custom File Input Text Updater ---
         document.getElementById('logoInput').addEventListener('change', function(e) {
             var fileName = e.target.files[0] ? e.target.files[0].name : "No file chosen";
@@ -333,6 +435,7 @@
         // --- Build Form Submit ---
         document.getElementById('buildForm').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
             document.getElementById('buildModal').style.display = 'flex';
             document.getElementById('loadingState').style.display = 'block';
             document.getElementById('successState').style.display = 'none';
