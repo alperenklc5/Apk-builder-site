@@ -44,7 +44,7 @@
             --mono: 'JetBrains Mono', monospace; --sans: 'Sora', sans-serif;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); font-family: var(--sans); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+        body { background: var(--bg); font-family: var(--sans); color: var(--text); min-height: 100vh; overflow-x: hidden; padding-bottom: 90px; }
         
         body::before {
             content: ''; position: fixed; inset: 0;
@@ -59,7 +59,7 @@
         /* Cookie Banner - Professional & Sharp */
         .cookie-banner {
             position: fixed;
-            bottom: 0;
+            bottom: 90px;
             left: 0;
             right: 0;
             background: rgba(17, 17, 20, 0.98);
@@ -153,16 +153,6 @@
         .btn-build { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--accent), #6b5eff); border: none; border-radius: 10px; color: #fff; font-weight: 700; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; letter-spacing: 0.5px; }
         .btn-build:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(79,142,255,0.2); }
 
-        /* AD Container Styling */
-        .ad-container-loading {
-            margin-top: 24px;
-            padding: 0;
-            min-height: 90px;
-            display: block;
-            text-align: center;
-            background: transparent;
-        }
-
         /* Footer */
         .footer { border-top: 1px solid var(--border); padding: 28px 0; text-align: center; position: relative; z-index: 1; margin-top: 50px; }
         .footer-links button { background: none; border: none; color: var(--muted); font-size: 0.85rem; cursor: pointer; transition: color 0.2s; }
@@ -181,7 +171,7 @@
         .close-btn:hover { color: var(--text); }
 
         /* Tour Guide & Floating Button */
-        .floating-help { position: fixed; bottom: 30px; right: 30px; width: 55px; height: 55px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #6b5eff); color: white; border: none; box-shadow: 0 4px 15px rgba(79,142,255,0.4); font-size: 1.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 999; transition: transform 0.2s; animation: pulse 2s infinite; }
+        .floating-help { position: fixed; bottom: 120px; right: 30px; width: 55px; height: 55px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #6b5eff); color: white; border: none; box-shadow: 0 4px 15px rgba(79,142,255,0.4); font-size: 1.6rem; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 999; transition: transform 0.2s; animation: pulse 2s infinite; }
         .floating-help:hover { transform: scale(1.1); }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(79,142,255, 0.6); } 70% { box-shadow: 0 0 0 12px rgba(79,142,255, 0); } 100% { box-shadow: 0 0 0 0 rgba(79,142,255, 0); } }
         
@@ -202,6 +192,8 @@
             .cookie-content { flex-direction: column; align-items: stretch; }
             .cookie-buttons { width: 100%; justify-content: stretch; }
             .cookie-btn { flex: 1; }
+            body { padding-bottom: 100px; }
+            .cookie-banner { bottom: 90px; }
         }
     </style>
 </head>
@@ -209,7 +201,7 @@
     <div class="glow-blob glow-blob-1"></div>
     <div class="glow-blob glow-blob-2"></div>
 
-    <!-- COOKIE CONSENT BANNER - PROFESSIONAL -->
+    <!-- COOKIE CONSENT BANNER -->
     <div id="cookieBanner" class="cookie-banner">
         <div class="cookie-content">
             <div class="cookie-text">
@@ -312,9 +304,6 @@
                 <div class="spinner"></div>
                 <h4 style="color: white; font-weight: 600;">Building Your APK...</h4>
                 <p style="color: var(--muted); font-size: 0.9rem; margin-top: 8px;">This usually takes about 30 seconds. Please wait.</p>
-                
-                <!-- SOCIAL BAR REKLAMI -->
-                <div class="ad-container-loading" id="socialBarAd"></div>
             </div>
             <div id="successState" style="display: none;">
                 <i class="bi bi-check2-circle modal-icon icon-success"></i>
@@ -416,10 +405,10 @@
             popunderScript.src = 'https://pl29158126.profitablecpmratenetwork.com/79/67/a9/7967a970d6c7a89871413f99f698f4f2.js';
             document.body.appendChild(popunderScript);
 
-            // SOCIAL BAR SCRIPT
+            // SOCIAL BAR SCRIPT - Sayfanın altında küçük bar
             const socialBarScript = document.createElement('script');
             socialBarScript.src = 'https://pl29158125.profitablecpmratenetwork.com/53/d5/50/53d550e3c997ba1751ec968602f40a74.js';
-            document.getElementById('socialBarAd').appendChild(socialBarScript);
+            document.body.appendChild(socialBarScript);
         }
 
         // Sayfa yüklendiğinde cookie kontrolü
@@ -450,6 +439,11 @@
                 if (result.status === 'success') {
                     document.getElementById('successState').style.display = 'block';
                     document.getElementById('downloadBtn').href = result.download_url;
+                    
+                    // DOWNLOAD BUTONUNA CLICK LİSTENER EKLE
+                    document.getElementById('downloadBtn').addEventListener('click', function() {
+                        console.log('Download başlatıldı, popunder tetiklendi');
+                    }, { once: true });
                 } else {
                     document.getElementById('errorState').style.display = 'block';
                     document.getElementById('errorText').innerText = result.message;
