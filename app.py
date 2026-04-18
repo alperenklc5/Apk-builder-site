@@ -24,6 +24,13 @@ OLD_PACKAGE = "com.alperenkilic.webwrapperbase"
 
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
+@app.route('/blog/<path:blog_page>')
+def blog_page(blog_page):
+    """Generic blog route - tüm blog sayfalarını handle eder"""
+    try:
+        return render_template(f'blog/{blog_page}')
+    except:
+        return "Blog post not found", 404
 
 @app.route('/')
 def home():
