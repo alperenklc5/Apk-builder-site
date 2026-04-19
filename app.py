@@ -185,7 +185,7 @@ def build_apk():
         job_id = str(uuid.uuid4())[:8]
         temp_folder = os.path.join(OUTPUT_DIR, job_id)
         
-        source_path = TEMPLATE_DL if app_type == 'downloader' else TEMPLATE_STD
+        source_path = TEMPLATE_DL if app_type == 'video_downloader' else TEMPLATE_STD
         shutil.copytree(source_path, temp_folder)
         for i in ['build', 'dist', 'META-INF']:
             p = os.path.join(temp_folder, i)
